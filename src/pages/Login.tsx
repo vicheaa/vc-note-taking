@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useEffect } from "react";
 
 export function Login() {
@@ -101,7 +102,14 @@ export function Login() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  {isSignUp ? "Signing up..." : "Signing in..."}
+                </span>
+              ) : (
+                isSignUp ? "Sign Up" : "Sign In"
+              )}
             </Button>
           </form>
 

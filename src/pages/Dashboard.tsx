@@ -4,6 +4,7 @@ import { CreateNoteInput } from "@/components/notes/CreateNoteInput";
 import { NoteGrid } from "@/components/notes/NoteGrid";
 import { EditNoteModal } from "@/components/notes/EditNoteModal";
 import { KeyboardHelp } from "@/components/ui/KeyboardHelp";
+import { LoadingContent } from "@/components/ui/LoadingSpinner";
 import { useNotes } from "@/hooks/useNotes";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { Note } from "@/types/database.types";
@@ -72,9 +73,7 @@ export function Dashboard() {
         <CreateNoteInput triggerExpand={triggerNewNote} />
 
         {isLoading ? (
-          <div className="flex justify-center py-20">
-            <div className="text-slate-600">Loading notes...</div>
-          </div>
+          <LoadingContent text="Loading notes..." />
         ) : (
           <NoteGrid
             notes={filteredNotes}

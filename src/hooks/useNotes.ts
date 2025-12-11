@@ -2,7 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Note, NoteInsert, NoteUpdate } from "@/types/database.types";
 
-// Fetch all notes for the current user
+// Calculate date 7 days ago for trash filtering
+const getTrashCutoffDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return date.toISOString();
+};
+
+// Fetch all active notes for the current user (not in trash)
 export function useNotes() {
   return useQuery({
     queryKey: ["notes"],
@@ -10,7 +17,27 @@ export function useNotes() {
       const { data, error } = await supabase
         .from("notes")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Note[];
+    },
+  });
+}
+
+// Fetch all trashed notes (deleted within the last 7 days)
+export function useTrashedNotes() {
+  return useQuery({
+    queryKey: ["trashed-notes"],
+    queryFn: async () => {
+      const cutoffDate = getTrashCutoffDate();
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*")
+        .not("deleted_at", "is", null)
+        .gte("deleted_at", cutoffDate)
+        .order("deleted_at", { ascending: false });
 
       if (error) throw error;
       return data as Note[];
@@ -79,16 +106,21 @@ export function useUpdateNote() {
   });
 }
 
-// Delete a note
+// Soft delete a note (move to trash)
 export function useDeleteNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("notes").delete().eq("id", id);
+      const { data, error } = await supabase
+        .from("notes")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
-      return id;
+      return data as Note;
     },
     onMutate: async (noteId) => {
       // Cancel outgoing refetches
@@ -97,7 +129,7 @@ export function useDeleteNote() {
       // Snapshot the previous value
       const previousNotes = queryClient.getQueryData<Note[]>(["notes"]);
 
-      // Optimistically update to remove the note
+      // Optimistically update to remove the note from active list
       queryClient.setQueryData<Note[]>(["notes"], (old) =>
         old ? old.filter((note) => note.id !== noteId) : []
       );
@@ -112,6 +144,115 @@ export function useDeleteNote() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["trashed-notes"] });
+    },
+  });
+}
+
+// Restore a note from trash
+export function useRestoreNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("notes")
+        .update({ deleted_at: null })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Note;
+    },
+    onMutate: async (noteId) => {
+      await queryClient.cancelQueries({ queryKey: ["trashed-notes"] });
+
+      const previousTrashedNotes = queryClient.getQueryData<Note[]>(["trashed-notes"]);
+
+      queryClient.setQueryData<Note[]>(["trashed-notes"], (old) =>
+        old ? old.filter((note) => note.id !== noteId) : []
+      );
+
+      return { previousTrashedNotes };
+    },
+    onError: (_err, _noteId, context) => {
+      if (context?.previousTrashedNotes) {
+        queryClient.setQueryData(["trashed-notes"], context.previousTrashedNotes);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["trashed-notes"] });
+    },
+  });
+}
+
+// Permanently delete a note
+export function usePermanentDeleteNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notes").delete().eq("id", id);
+
+      if (error) throw error;
+      return id;
+    },
+    onMutate: async (noteId) => {
+      await queryClient.cancelQueries({ queryKey: ["trashed-notes"] });
+
+      const previousTrashedNotes = queryClient.getQueryData<Note[]>(["trashed-notes"]);
+
+      queryClient.setQueryData<Note[]>(["trashed-notes"], (old) =>
+        old ? old.filter((note) => note.id !== noteId) : []
+      );
+
+      return { previousTrashedNotes };
+    },
+    onError: (_err, _noteId, context) => {
+      if (context?.previousTrashedNotes) {
+        queryClient.setQueryData(["trashed-notes"], context.previousTrashedNotes);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["trashed-notes"] });
+    },
+  });
+}
+
+// Empty all trash (permanently delete all trashed notes)
+export function useEmptyTrash() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const cutoffDate = getTrashCutoffDate();
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .not("deleted_at", "is", null)
+        .gte("deleted_at", cutoffDate);
+
+      if (error) throw error;
+      return true;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["trashed-notes"] });
+
+      const previousTrashedNotes = queryClient.getQueryData<Note[]>(["trashed-notes"]);
+
+      queryClient.setQueryData<Note[]>(["trashed-notes"], []);
+
+      return { previousTrashedNotes };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousTrashedNotes) {
+        queryClient.setQueryData(["trashed-notes"], context.previousTrashedNotes);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["trashed-notes"] });
     },
   });
 }
@@ -137,3 +278,4 @@ export function useTogglePin() {
     },
   });
 }
+

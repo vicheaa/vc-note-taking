@@ -8,6 +8,7 @@ interface ModalProps {
   children: React.ReactNode;
   title?: string;
   className?: string;
+  bgColor?: string;
 }
 
 export function Modal({
@@ -16,6 +17,7 @@ export function Modal({
   children,
   title,
   className,
+  bgColor = "#ffffff",
 }: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -36,17 +38,18 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl",
+          "relative z-10 w-full max-w-lg max-h-[calc(100vh-4rem)] rounded-lg bg-white p-6 shadow-xl",
           "mx-4",
           className
         )}
+        style={{ backgroundColor: bgColor }}
       >
         {title && (
           <div className="mb-4 flex items-center justify-between">

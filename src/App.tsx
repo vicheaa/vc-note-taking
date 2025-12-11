@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
+import { TrashPage } from "@/pages/TrashPage";
 import { useAuth } from "@/hooks/useAuth";
+import { LoadingPage } from "@/components/ui/LoadingSpinner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,11 +19,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
-      </div>
-    );
+    return <LoadingPage text="Authenticating..." />;
   }
 
   if (!user) {
@@ -45,6 +43,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/trash"
+            element={
+              <ProtectedRoute>
+                <TrashPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
@@ -53,3 +59,4 @@ function App() {
 }
 
 export default App;
+

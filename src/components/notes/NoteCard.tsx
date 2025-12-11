@@ -16,7 +16,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this note?")) {
+    if (confirm("Move this note to trash?")) {
       deleteNote.mutate(note.id);
     }
   };

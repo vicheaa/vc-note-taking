@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
-import { Search, Grid3x3, List, LogOut, X } from "lucide-react";
+import { Search, Grid3x3, List, LogOut, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useTrashedNotes } from "@/hooks/useNotes";
 
 interface HeaderProps {
   viewMode: "grid" | "list";
@@ -20,6 +21,7 @@ export function Header({
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { data: trashedNotes } = useTrashedNotes();
 
   const handleLogout = async () => {
     await signOut();
@@ -31,13 +33,15 @@ export function Header({
     searchInputRef.current?.focus();
   };
 
+  const trashCount = trashedNotes?.length || 0;
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left: Logo */}
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-slate-900">KeepClone</h1>
+            <h1 className="text-xl font-semibold text-slate-900">VC-Note</h1>
           </div>
 
           {/* Middle: Search Bar */}
@@ -64,7 +68,7 @@ export function Header({
             </div>
           </div>
 
-          {/* Right: View Toggle & Logout */}
+          {/* Right: View Toggle, Trash & Logout */}
           <div className="flex items-center gap-2">
             {/* View Toggle */}
             <button
@@ -84,6 +88,20 @@ export function Header({
                 <Grid3x3 className="h-5 w-5 text-slate-700" />
               )}
             </button>
+
+            {/* Trash Link */}
+            <Link
+              to="/trash"
+              className="relative rounded-full p-2 hover:bg-slate-100 transition-colors"
+              title="Trash"
+            >
+              <Trash2 className="h-5 w-5 text-slate-700" />
+              {trashCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+                  {trashCount > 9 ? "9+" : trashCount}
+                </span>
+              )}
+            </Link>
 
             {/* Logout Dropdown */}
             <div className="relative">
@@ -120,3 +138,4 @@ export function Header({
     </header>
   );
 }
+

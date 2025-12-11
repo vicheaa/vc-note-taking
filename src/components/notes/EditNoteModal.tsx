@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -18,6 +18,7 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   const [content, setContent] = useState("");
   const [bgColor, setBgColor] = useState("#ffffff");
   const updateNote = useUpdateNote();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (note) {
@@ -26,6 +27,17 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
       setBgColor(note.bg_color || "#ffffff");
     }
   }, [note]);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = "auto";
+      // Set height to scrollHeight, capped by max-height (CSS handles the cap)
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [content]);
 
   const handleSave = async () => {
     if (!note) return;
@@ -58,8 +70,8 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   if (!note) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Edit Note">
-      <div className="space-y-4" style={{ backgroundColor: bgColor }}>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Edit Note" bgColor={bgColor}>
+      <div className="space-y-4">
         <Input
           type="text"
           placeholder="Title"
@@ -69,13 +81,14 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
           style={{ backgroundColor: "transparent" }}
         />
         <Textarea
+          ref={textareaRef}
           placeholder="Content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-[200px]"
+          className="min-h-[100px] md:max-h-[60vh] max-h-[90vh] overflow-y-auto resize-none"
           style={{ backgroundColor: "transparent" }}
         />
-        <div className="border-t border-slate-200 pt-3">
+        <div className="border-t border-slate-200 pt-3 hidden md:block">
           <ColorPicker selectedColor={bgColor} onColorChange={setBgColor} />
         </div>
         <div className="flex justify-end gap-2">
@@ -90,3 +103,4 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
     </Modal>
   );
 }
+

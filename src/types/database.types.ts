@@ -7,6 +7,7 @@ export interface Note {
   created_at: string;
   updated_at: string;
   bg_color: string;
+  deleted_at: string | null;
 }
 
 export interface NoteInsert {
@@ -23,6 +24,7 @@ export interface NoteUpdate {
   is_pinned?: boolean;
   bg_color?: string;
   updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export type Database = {
