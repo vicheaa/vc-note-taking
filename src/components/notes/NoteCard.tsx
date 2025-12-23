@@ -31,15 +31,6 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
     onEdit(note);
   };
 
-  const truncateContent = (text: string | null, maxLines: number = 5) => {
-    if (!text) return "";
-    const lines = text.split("\n");
-    if (lines.length > maxLines) {
-      return lines.slice(0, maxLines).join("\n") + "...";
-    }
-    return text;
-  };
-
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
@@ -58,9 +49,10 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
           </h3>
         )}
         {note.content && (
-          <p className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-5">
-            {truncateContent(note.content)}
-          </p>
+          <div
+            className="text-sm text-slate-700 line-clamp-5 prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-semibold"
+            dangerouslySetInnerHTML={{ __html: note.content }}
+          />
         )}
       </div>
 

@@ -38,14 +38,14 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" >
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg max-h-[calc(100vh-4rem)] rounded-lg bg-white p-6 shadow-xl",
+          "relative z-10 w-full max-w-[700px] max-h-[calc(100vh-4rem)] rounded-lg bg-white p-6 shadow-xl",
           "mx-4",
           className
         )}

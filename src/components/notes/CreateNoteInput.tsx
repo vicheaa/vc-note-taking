@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { ColorPicker } from "@/components/ui/ColorPicker";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { useCreateNote } from "@/hooks/useNotes";
 
 interface CreateNoteInputProps {
@@ -14,7 +13,7 @@ export function CreateNoteInput({
   const [isExpanded, setIsExpanded] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [bgColor, setBgColor] = useState("#ffffff");
+  const [bgColor] = useState("#ffffff");
   const containerRef = useRef<HTMLDivElement>(null);
   const createNote = useCreateNote();
 
@@ -45,17 +44,20 @@ export function CreateNoteInput({
   }, [isExpanded, title, content]);
 
   const handleClose = async () => {
-    if (title.trim() || content.trim()) {
+    // Check if content has actual text (not just empty HTML tags)
+    const hasContent =
+      content && content.replace(/<[^>]*>/g, "").trim().length > 0;
+
+    if (title.trim() || hasContent) {
       await createNote.mutateAsync({
         title: title.trim() || null,
-        content: content.trim() || null,
+        content: hasContent ? content : null,
         is_pinned: false,
         bg_color: bgColor,
       });
     }
     setTitle("");
     setContent("");
-    setBgColor("#ffffff");
     setIsExpanded(false);
   };
 
@@ -87,17 +89,13 @@ export function CreateNoteInput({
           className="mb-3 border-0 px-0 font-semibold placeholder:font-normal focus-visible:ring-0"
           style={{ backgroundColor: "transparent" }}
         />
-        <Textarea
+        <RichTextEditor
+          content={content}
+          onChange={setContent}
           placeholder="Take a note..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-[100px] border-0 px-0 focus-visible:ring-0"
-          style={{ backgroundColor: "transparent" }}
+          className="min-h-[100px] border-0"
         />
-        <div className="mt-4 mb-3 border-t border-slate-200 pt-3">
-          <ColorPicker selectedColor={bgColor} onColorChange={setBgColor} />
-        </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-3">
           <button
             onClick={handleClose}
             className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
