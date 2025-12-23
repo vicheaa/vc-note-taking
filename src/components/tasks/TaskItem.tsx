@@ -21,6 +21,7 @@ export function TaskItem({
   const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isFocusedRef = useRef(false);
 
   useEffect(() => {
     if (isNew && inputRef.current) {
@@ -28,8 +29,12 @@ export function TaskItem({
     }
   }, [isNew]);
 
+  // Only sync from props when the input is NOT focused
+  // This prevents overwriting user's typing when React Query refetches
   useEffect(() => {
-    setContent(task.content);
+    if (!isFocusedRef.current) {
+      setContent(task.content);
+    }
   }, [task.content]);
 
   // Cleanup debounce timer on unmount
@@ -98,6 +103,8 @@ export function TaskItem({
         value={content}
         onChange={handleContentChange}
         onKeyDown={handleKeyDown}
+        onFocus={() => { isFocusedRef.current = true; }}
+        onBlur={() => { isFocusedRef.current = false; }}
         placeholder="List item"
         className={`flex-1 bg-transparent border-none outline-none text-sm ${
           task.is_completed ? "text-slate-400 line-through" : "text-slate-700"
