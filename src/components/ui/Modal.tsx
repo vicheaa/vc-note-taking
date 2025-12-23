@@ -45,7 +45,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-[700px] max-h-[calc(100vh-4rem)] rounded-lg bg-white p-6 shadow-xl",
+          "relative z-10 w-full max-w-[700px] max-h-[calc(100vh-4rem)] rounded-lg bg-white p-2 shadow-xl",
           "mx-4",
           className
         )}

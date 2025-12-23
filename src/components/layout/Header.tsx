@@ -41,7 +41,7 @@ export function Header({
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left: Logo */}
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-slate-900">VC-Note</h1>
+            <h1 className="text-xl font-semibold text-slate-900">VC-Note-Taking</h1>
           </div>
 
           {/* Middle: Search Bar */}

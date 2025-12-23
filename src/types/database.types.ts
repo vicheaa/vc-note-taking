@@ -8,6 +8,7 @@ export interface Note {
   updated_at: string;
   bg_color: string;
   deleted_at: string | null;
+  due_date: string | null;
 }
 
 export interface NoteInsert {
@@ -16,6 +17,7 @@ export interface NoteInsert {
   is_pinned?: boolean;
   bg_color?: string;
   user_id?: string;
+  due_date?: string | null;
 }
 
 export interface NoteUpdate {
@@ -25,6 +27,32 @@ export interface NoteUpdate {
   bg_color?: string;
   updated_at?: string;
   deleted_at?: string | null;
+  due_date?: string | null;
+}
+
+// Task types for todo items within notes
+export interface Task {
+  id: string;
+  note_id: string;
+  content: string;
+  is_completed: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskInsert {
+  note_id: string;
+  content: string;
+  is_completed?: boolean;
+  position?: number;
+}
+
+export interface TaskUpdate {
+  content?: string;
+  is_completed?: boolean;
+  position?: number;
+  updated_at?: string;
 }
 
 export type Database = {
@@ -34,6 +62,11 @@ export type Database = {
         Row: Note;
         Insert: NoteInsert;
         Update: NoteUpdate;
+      };
+      tasks: {
+        Row: Task;
+        Insert: TaskInsert;
+        Update: TaskUpdate;
       };
     };
   };
