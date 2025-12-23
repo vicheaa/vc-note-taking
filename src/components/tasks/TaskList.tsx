@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { TaskItem } from "./TaskItem";
-import { Task } from "@/types/database.types";
 import {
   useTasks,
   useCreateTask,

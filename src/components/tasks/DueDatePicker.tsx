@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Calendar, X } from "lucide-react";
 
 interface DueDatePickerProps {
@@ -7,7 +7,7 @@ interface DueDatePickerProps {
 }
 
 export function DueDatePicker({ dueDate, onChange }: DueDatePickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Format date for display
