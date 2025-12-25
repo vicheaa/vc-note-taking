@@ -142,6 +142,15 @@ export function CreateNoteInput({
       clearTimeout(debounceTimerRef.current);
     }
 
+    // If a save is already in progress, just close without creating duplicate
+    // The in-flight save will complete and handle the note creation/update
+    if (isSavingRef.current) {
+      setTitle("");
+      setContent("");
+      setIsExpanded(false);
+      return;
+    }
+
     // Check if content has actual text (not just empty HTML tags)
     const hasContent =
       content && content.replace(/<[^>]*>/g, "").trim().length > 0;

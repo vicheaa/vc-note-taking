@@ -66,6 +66,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
 
   return (
     <div
+      onClick={handleEdit}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
@@ -75,7 +76,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
       style={{ backgroundColor: note.bg_color }}
     >
       {/* Content */}
-      <div onClick={handleEdit}>
+      <div>
         {/* Title */}
         {note.title && (
           <h3 className="mb-2 font-semibold text-slate-900 line-clamp-2">

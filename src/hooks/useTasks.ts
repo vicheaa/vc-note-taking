@@ -37,8 +37,41 @@ export function useCreateTask() {
       if (error) throw error;
       return data as Task;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", data.note_id] });
+    onMutate: async (newTask) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["tasks", newTask.note_id] });
+
+      // Snapshot the previous value
+      const previousTasks = queryClient.getQueryData<Task[]>(["tasks", newTask.note_id]);
+
+      // Optimistically add the new task with a temp ID
+      const optimisticTask: Task = {
+        id: `temp-${Date.now()}`,
+        note_id: newTask.note_id,
+        content: newTask.content || "",
+        is_completed: false,
+        position: newTask.position || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData<Task[]>(["tasks", newTask.note_id], (old) =>
+        old ? [...old, optimisticTask] : [optimisticTask]
+      );
+
+      return { previousTasks, noteId: newTask.note_id, tempId: optimisticTask.id };
+    },
+    onError: (_err, newTask, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["tasks", newTask.note_id], context.previousTasks);
+      }
+    },
+    onSuccess: (data, _variables, context) => {
+      // Replace temp task with real one
+      queryClient.setQueryData<Task[]>(["tasks", data.note_id], (old) =>
+        old ? old.map((t) => (t.id === context?.tempId ? data : t)) : [data]
+      );
     },
   });
 }
@@ -67,9 +100,33 @@ export function useUpdateTask() {
       if (error) throw error;
       return { task: data as Task, noteId };
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", result.noteId] });
+    onMutate: async ({ id, noteId, updates }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["tasks", noteId] });
+
+      // Snapshot the previous value
+      const previousTasks = queryClient.getQueryData<Task[]>(["tasks", noteId]);
+
+      // Optimistically update the task
+      queryClient.setQueryData<Task[]>(["tasks", noteId], (old) =>
+        old
+          ? old.map((task) =>
+              task.id === id
+                ? { ...task, ...updates, updated_at: new Date().toISOString() }
+                : task
+            )
+          : []
+      );
+
+      return { previousTasks, noteId };
     },
+    onError: (_err, variables, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["tasks", variables.noteId], context.previousTasks);
+      }
+    },
+    // No need to invalidate - optimistic update is sufficient
   });
 }
 

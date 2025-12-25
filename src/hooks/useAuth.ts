@@ -36,12 +36,18 @@ export function useAuth() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: 'https://note.vichea.space',
+      },
     });
     return { error };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    // Use scope: 'local' to ensure local storage is cleared even if server session is invalid
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    // Always clear user state, even if server returns an error
+    setUser(null);
     return { error };
   };
 

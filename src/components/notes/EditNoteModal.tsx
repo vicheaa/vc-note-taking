@@ -27,6 +27,7 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   const [mode, setMode] = useState<NoteMode>("text");
   const updateNote = useUpdateNote();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false);
 
   // Check if this note has tasks
   const { data: tasks = [] } = useTasks(note?.id || null);
@@ -77,6 +78,9 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
 
       // Set new timer for 1 second
       debounceTimerRef.current = setTimeout(async () => {
+        // Prevent concurrent saves
+        if (isSavingRef.current) return;
+
         // Only save if there are changes
         if (
           newTitle !== (note.title || "") ||
@@ -84,15 +88,20 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
           newBgColor !== note.bg_color ||
           newDueDate !== note.due_date
         ) {
-          await updateNote.mutateAsync({
-            id: note.id,
-            updates: {
-              title: newTitle.trim() || null,
-              content: newContent || null,
-              bg_color: newBgColor,
-              due_date: newDueDate,
-            },
-          });
+          isSavingRef.current = true;
+          try {
+            await updateNote.mutateAsync({
+              id: note.id,
+              updates: {
+                title: newTitle.trim() || null,
+                content: newContent || null,
+                bg_color: newBgColor,
+                due_date: newDueDate,
+              },
+            });
+          } finally {
+            isSavingRef.current = false;
+          }
         }
       }, 1000);
     },
@@ -145,9 +154,16 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   };
 
   const handleClose = () => {
-    // Cancel any pending debounced save and save immediately on close
+    // Cancel any pending debounced save
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+    }
+
+    // If a save is already in progress, just close without duplicate save
+    // The in-flight save will complete on its own
+    if (isSavingRef.current) {
+      onClose();
+      return;
     }
 
     if (
@@ -166,20 +182,33 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   // Format the last edited time
   const formatEditedTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+
+    const time = date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     });
+
+    if (isToday) {
+      return time;
+    }
+
+    // Format: "12 Dec 26, 21:02"
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day} ${month} ${year}, ${time}`;
   };
 
   if (!note) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="" bgColor={bgColor}>
-      <div className="space-y-4 mt-2">
+      <div className="flex flex-col h-[calc(100vh-8rem)] md:h-auto md:max-h-[70vh]">
         {/* Title input with mode toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Input
             type="text"
             placeholder={mode === "tasks" ? "Task" : "Title"}
@@ -191,26 +220,26 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
         </div>
 
         {/* Content area - switches based on mode */}
-        {mode === "text" ? (
-          <RichTextEditor
-            content={content}
-            onChange={handleContentChange}
-            placeholder="Take a note..."
-            className="min-h-[300px] md:max-h-[60vh] max-h-[90vh] overflow-y-auto"
-          />
-        ) : (
-          <div className="min-h-[300px] md:max-h-[60vh] max-h-[90vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto mt-4">
+          {mode === "text" ? (
+            <RichTextEditor
+              content={content}
+              onChange={handleContentChange}
+              placeholder="Take a note..."
+              className="min-h-[200px]"
+            />
+          ) : (
             <TaskList noteId={note.id} />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Edited time */}
-        <div className="text-right text-xs text-slate-400">
+        <div className="text-right text-xs text-slate-400 py-2 flex-shrink-0">
           Edited at {formatEditedTime(note.updated_at)}
         </div>
 
         {/* Toolbar */}
-        <div className="border-t border-slate-200 pt-3 flex items-center gap-2 flex-wrap">
+        <div className="border-t border-slate-200 pt-3 flex items-center gap-2 flex-wrap flex-shrink-0">
           {/* Mode toggle buttons */}
           <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
             <button
@@ -279,5 +308,4 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
         </div>
       </div>
     </Modal>
-  );
-}
+  );}

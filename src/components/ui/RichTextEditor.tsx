@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import Placeholder from "@tiptap/extension-placeholder";
+import Link from "@tiptap/extension-link";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { AdvancedColorPicker } from "./AdvancedColorPicker";
@@ -45,6 +46,16 @@ export function RichTextEditor({
       Placeholder.configure({
         placeholder: placeholder,
       }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          class: "underline decoration-current cursor-pointer",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
     ],
     content: content,
     onUpdate: ({ editor }) => {
@@ -54,6 +65,7 @@ export function RichTextEditor({
       attributes: {
         class: cn(
           "prose prose-sm max-w-none focus:outline-none min-h-[200px] px-3 py-2",
+          "prose-a:text-inherit prose-a:no-underline",
           editorClassName
         ),
       },
@@ -222,10 +234,13 @@ export function RichTextEditor({
             "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-2",
             "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-2",
             // Paragraph styling
-            "[&_.ProseMirror_p]:mb-1"
+            "[&_.ProseMirror_p]:mb-1",
+            // Link styling
+            "[&_.ProseMirror_a]:underline [&_.ProseMirror_a]:decoration-current [&_.ProseMirror_a]:cursor-pointer"
           )}
         />
       </div>
     </div>
   );
 }
+

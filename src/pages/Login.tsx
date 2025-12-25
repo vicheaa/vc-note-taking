@@ -9,6 +9,7 @@ import { useEffect } from "react";
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,13 @@ export function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validate passwords match for signup
+    if (isSignUp && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -95,6 +103,25 @@ export function Login() {
               />
             </div>
 
+            {isSignUp && (
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-slate-700 mb-2"
+                >
+                  Confirm Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            )}
+
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
                 {error}
@@ -120,6 +147,7 @@ export function Login() {
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError("");
+                setConfirmPassword("");
               }}
               className="text-sm text-slate-600 hover:text-slate-900"
             >
@@ -133,3 +161,4 @@ export function Login() {
     </div>
   );
 }
+
