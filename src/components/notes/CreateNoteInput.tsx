@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/Input";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useCreateNote, useUpdateNote } from "@/hooks/useNotes";
+import { Check } from "lucide-react";
 
 interface CreateNoteInputProps {
   triggerExpand?: boolean;
@@ -14,12 +16,14 @@ export function CreateNoteInput({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [bgColor] = useState("#ffffff");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const containerRef = useRef<HTMLDivElement>(null);
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const createdNoteIdRef = useRef<string | null>(null);
   const isSavingRef = useRef(false);
+  const isCreatingRef = useRef(false); // Track if a CREATE operation is in progress
 
   // Handle keyboard shortcut to expand
   useEffect(() => {
@@ -69,8 +73,9 @@ export function CreateNoteInput({
               bg_color: bgColor,
             },
           });
-        } else {
-          // Create new note
+        } else if (!isCreatingRef.current) {
+          // Create new note only if not already creating
+          isCreatingRef.current = true;
           const result = await createNote.mutateAsync({
             title: newTitle.trim() || null,
             content: hasContent ? newContent : null,
@@ -80,6 +85,7 @@ export function CreateNoteInput({
           if (result?.id) {
             createdNoteIdRef.current = result.id;
           }
+          isCreatingRef.current = false;
         }
       } finally {
         isSavingRef.current = false;
@@ -142,12 +148,13 @@ export function CreateNoteInput({
       clearTimeout(debounceTimerRef.current);
     }
 
-    // If a save is already in progress, just close without creating duplicate
-    // The in-flight save will complete and handle the note creation/update
-    if (isSavingRef.current) {
+    // If a save or create is already in progress, just close without creating duplicate
+    // The in-flight operation will complete and handle the note creation/update
+    if (isSavingRef.current || isCreatingRef.current) {
       setTitle("");
       setContent("");
       setIsExpanded(false);
+      setSaveStatus("idle");
       return;
     }
 
@@ -157,14 +164,22 @@ export function CreateNoteInput({
 
     // Only save if there's content and note hasn't been created yet
     if ((title.trim() || hasContent) && !createdNoteIdRef.current) {
-      await createNote.mutateAsync({
-        title: title.trim() || null,
-        content: hasContent ? content : null,
-        is_pinned: false,
-        bg_color: bgColor,
-      });
+      isCreatingRef.current = true; // Prevent race condition
+      setSaveStatus("saving");
+      try {
+        await createNote.mutateAsync({
+          title: title.trim() || null,
+          content: hasContent ? content : null,
+          is_pinned: false,
+          bg_color: bgColor,
+        });
+        setSaveStatus("saved");
+      } finally {
+        isCreatingRef.current = false;
+      }
     } else if (createdNoteIdRef.current && (title.trim() || hasContent)) {
       // Final update for existing note
+      setSaveStatus("saving");
       await updateNote.mutateAsync({
         id: createdNoteIdRef.current,
         updates: {
@@ -173,10 +188,12 @@ export function CreateNoteInput({
           bg_color: bgColor,
         },
       });
+      setSaveStatus("saved");
     }
     setTitle("");
     setContent("");
     setIsExpanded(false);
+    setSaveStatus("idle");
     createdNoteIdRef.current = null;
   };
 
@@ -214,7 +231,19 @@ export function CreateNoteInput({
           placeholder="Take a note..."
           className="min-h-[100px] border-0"
         />
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-end items-center gap-2 mt-3">
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1 text-xs text-blue-500">
+              <LoadingSpinner size="sm" className="!w-3 !h-3" />
+              <span>Saving...</span>
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1 text-xs text-green-500">
+              <Check className="w-3 h-3" />
+              <span>Saved</span>
+            </span>
+          )}
           <button
             onClick={handleClose}
             className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"

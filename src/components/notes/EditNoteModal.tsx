@@ -156,16 +156,21 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    await updateNote.mutateAsync({
-      id: note.id,
-      updates: {
-        title: title.trim() || null,
-        content: mode === "text" ? content || null : note.content,
-        bg_color: bgColor,
-        due_date: dueDate,
-      },
-    });
-    onClose();
+    setSaveStatus("saving");
+    try {
+      await updateNote.mutateAsync({
+        id: note.id,
+        updates: {
+          title: title.trim() || null,
+          content: mode === "text" ? content || null : note.content,
+          bg_color: bgColor,
+          due_date: dueDate,
+        },
+      });
+      setSaveStatus("saved");
+    } finally {
+      onClose();
+    }
   };
 
   const handleClose = () => {
