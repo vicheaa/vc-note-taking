@@ -1,17 +1,20 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -25,6 +28,7 @@ export function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     // Validate passwords match for signup
     if (isSignUp && password !== confirmPassword) {
@@ -35,14 +39,27 @@ export function Login() {
     setLoading(true);
 
     try {
-      const result = isSignUp
-        ? await signUp(email, password)
-        : await signIn(email, password);
-
-      if (result.error) {
-        setError(result.error.message);
+      if (isSignUp) {
+        const result = await signUp(email, password);
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          // Show success message and switch to login form
+          setSuccessMessage(
+            "Account created successfully! Please check your email to confirm your account, then sign in below."
+          );
+          setIsSignUp(false);
+          setPassword("");
+          setConfirmPassword("");
+          // Keep email pre-filled for easy login
+        }
       } else {
-        navigate("/dashboard");
+        const result = await signIn(email, password);
+        if (result.error) {
+          setError(result.error.message);
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -52,7 +69,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex flex-col min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md">
         <div className="rounded-lg bg-white p-8 shadow-sm border border-slate-200">
           {/* Header */}
@@ -83,6 +100,7 @@ export function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                className="text-md"
               />
             </div>
 
@@ -93,14 +111,24 @@ export function Login() {
               >
                 Password
               </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="text-md pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {isSignUp && (
@@ -111,14 +139,30 @@ export function Login() {
                 >
                   Confirm Password
                 </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+                <p className="font-medium">✓ {successMessage}</p>
               </div>
             )}
 
@@ -147,6 +191,7 @@ export function Login() {
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError("");
+                setSuccessMessage("");
                 setConfirmPassword("");
               }}
               className="text-sm text-slate-600 hover:text-slate-900"
@@ -157,6 +202,9 @@ export function Login() {
             </button>
           </div>
         </div>
+      </div>
+      <div className="mt-[2vh]">
+        <p>Power by <a href="https://vichea.space" target="_blank" className="underline">vichea.space</a></p>
       </div>
     </div>
   );
