@@ -100,7 +100,7 @@ export function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="text-md"
+                className="text-md border"
               />
             </div>
 
@@ -119,7 +119,7 @@ export function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="text-md pr-10"
+                  className="text-md pr-10 border"
                 />
                 <button
                   type="button"
@@ -147,7 +147,7 @@ export function Login() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="pr-10"
+                    className="pr-10 border"
                   />
                   <button
                     type="button"

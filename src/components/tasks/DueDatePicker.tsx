@@ -68,8 +68,8 @@ export function DueDatePicker({ dueDate, onChange }: DueDatePickerProps) {
           }}
           className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors text-sm text-slate-600"
         >
-          <Calendar className="w-4 h-4" />
-          <span>Add due date</span>
+          {/* <Calendar className="w-4 h-4" />
+          <span>Add due date</span> */}
         </button>
       )}
 

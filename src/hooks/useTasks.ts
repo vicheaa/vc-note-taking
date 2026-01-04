@@ -53,6 +53,7 @@ export function useCreateTask() {
         position: newTask.position || 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        due_date: null,
       };
 
       queryClient.setQueryData<Task[]>(["tasks", newTask.note_id], (old) =>

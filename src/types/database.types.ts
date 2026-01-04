@@ -39,6 +39,7 @@ export interface Task {
   position: number;
   created_at: string;
   updated_at: string;
+  due_date: string | null;
 }
 
 export interface TaskInsert {
@@ -46,6 +47,7 @@ export interface TaskInsert {
   content: string;
   is_completed?: boolean;
   position?: number;
+  due_date?: string | null;
 }
 
 export interface TaskUpdate {
@@ -53,6 +55,7 @@ export interface TaskUpdate {
   is_completed?: boolean;
   position?: number;
   updated_at?: string;
+  due_date?: string | null;
 }
 
 export type Database = {

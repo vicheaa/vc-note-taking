@@ -60,6 +60,13 @@ export function TaskList({ noteId }: TaskListProps) {
     [noteId, deleteTask]
   );
 
+  const handleDueDateChange = useCallback(
+    (id: string, dueDate: string | null) => {
+      updateTask.mutate({ id, noteId, updates: { due_date: dueDate } });
+    },
+    [noteId, updateTask]
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-slate-400 text-sm">
@@ -79,6 +86,7 @@ export function TaskList({ noteId }: TaskListProps) {
             onToggle={handleToggle}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
+            onDueDateChange={handleDueDateChange}
             isNew={task.id === newTaskId}
           />
         ))}
@@ -120,6 +128,7 @@ export function TaskList({ noteId }: TaskListProps) {
                   onToggle={handleToggle}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
+                  onDueDateChange={handleDueDateChange}
                 />
               ))}
             </div>

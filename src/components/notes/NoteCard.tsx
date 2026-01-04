@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Trash2, Pin, Edit3, Calendar, CheckSquare, Square } from "lucide-react";
 import { Note } from "@/types/database.types";
 import { useDeleteNote, useTogglePin } from "@/hooks/useNotes";
-import { useTasks } from "@/hooks/useTasks";
+import { useTasks, useToggleTaskCompletion } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 
 interface NoteCardProps {
@@ -15,6 +15,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
   const deleteNote = useDeleteNote();
   const togglePin = useTogglePin();
   const { data: tasks = [] } = useTasks(note.id);
+  const toggleTaskCompletion = useToggleTaskCompletion();
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,6 +32,11 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(note);
+  };
+
+  const handleToggleTask = (e: React.MouseEvent, taskId: string, isCompleted: boolean) => {
+    e.stopPropagation();
+    toggleTaskCompletion.mutate({ id: taskId, noteId: note.id, isCompleted });
   };
 
   // Format due date for display
@@ -87,20 +93,36 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
         {/* Task preview or content */}
         {hasTasks ? (
           <div className="space-y-1.5">
-            {/* Show first few incomplete tasks */}
+            {/* Show first few incomplete tasks with interactive checkboxes */}
             {incompleteTasks.slice(0, 4).map((task) => (
               <div key={task.id} className="flex items-start gap-2 text-sm">
-                <Square className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                <button
+                  onClick={(e) => handleToggleTask(e, task.id, task.is_completed)}
+                  className="flex-shrink-0 mt-0.5 hover:scale-110 transition-transform"
+                  title="Mark as complete"
+                >
+                  <Square className="w-4 h-4 text-slate-400 hover:text-blue-500" />
+                </button>
                 <span className="text-slate-700 line-clamp-1">{task.content}</span>
               </div>
             ))}
-            {/* Show completed count if any */}
-            {completedTasks.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-slate-400">
-                <CheckSquare className="w-4 h-4 flex-shrink-0" />
-                <span>
-                  + {completedTasks.length} completed
-                </span>
+            {/* Show completed tasks with strikethrough */}
+            {completedTasks.slice(0, 4).map((task) => (
+              <div key={task.id} className="flex items-start gap-2 text-sm">
+                <button
+                  onClick={(e) => handleToggleTask(e, task.id, task.is_completed)}
+                  className="flex-shrink-0 mt-0.5 hover:scale-110 transition-transform"
+                  title="Mark as incomplete"
+                >
+                  <CheckSquare className="w-4 h-4 text-slate-400 hover:text-blue-500" />
+                </button>
+                <span className="text-slate-400 line-through line-clamp-1">{task.content}</span>
+              </div>
+            ))}
+            {/* Show remaining completed count if more than 4 */}
+            {completedTasks.length > 4 && (
+              <div className="text-xs text-slate-400">
+                + {completedTasks.length - 4} more completed
               </div>
             )}
             {/* Show remaining incomplete count */}

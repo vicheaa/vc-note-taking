@@ -5,10 +5,11 @@ import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { AdvancedColorPicker } from "@/components/ui/AdvancedColorPicker";
 import { TaskList } from "@/components/tasks/TaskList";
 import { DueDatePicker } from "@/components/tasks/DueDatePicker";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Note } from "@/types/database.types";
 import { useUpdateNote } from "@/hooks/useNotes";
 import { useTasks } from "@/hooks/useTasks";
-import { Palette, Type, CheckSquare } from "lucide-react";
+import { Palette, Type, CheckSquare, Check } from "lucide-react";
 
 interface EditNoteModalProps {
   note: Note | null;
@@ -25,8 +26,10 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [mode, setMode] = useState<NoteMode>("text");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const updateNote = useUpdateNote();
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const saveStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
 
   // Check if this note has tasks
@@ -52,11 +55,14 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
     }
   }, [hasTasks]);
 
-  // Cleanup debounce timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+      }
+      if (saveStatusTimerRef.current) {
+        clearTimeout(saveStatusTimerRef.current);
       }
     };
   }, []);
@@ -89,6 +95,7 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
           newDueDate !== note.due_date
         ) {
           isSavingRef.current = true;
+          setSaveStatus("saving");
           try {
             await updateNote.mutateAsync({
               id: note.id,
@@ -99,6 +106,14 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
                 due_date: newDueDate,
               },
             });
+            setSaveStatus("saved");
+            // Clear "Saved" status after 2 seconds
+            if (saveStatusTimerRef.current) {
+              clearTimeout(saveStatusTimerRef.current);
+            }
+            saveStatusTimerRef.current = setTimeout(() => {
+              setSaveStatus("idle");
+            }, 2000);
           } finally {
             isSavingRef.current = false;
           }
@@ -233,9 +248,21 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
           )}
         </div>
 
-        {/* Edited time */}
-        <div className="text-right text-xs text-slate-400 py-2 flex-shrink-0">
-          Edited at {formatEditedTime(note.updated_at)}
+        {/* Edited time and save status */}
+        <div className="text-right text-xs text-slate-400 py-2 flex-shrink-0 flex items-center justify-end gap-2">
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1 text-blue-500">
+              <LoadingSpinner size="sm" className="!w-3 !h-3" />
+              <span>Saving...</span>
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1 text-green-500">
+              <Check className="w-3 h-3" />
+              <span>Saved</span>
+            </span>
+          )}
+          <span>Edited at {formatEditedTime(note.updated_at)}</span>
         </div>
 
         {/* Toolbar */}
@@ -266,8 +293,10 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
             </button>
           </div>
 
-          {/* Due date picker */}
-          <DueDatePicker dueDate={dueDate} onChange={handleDueDateChange} />
+          {/* Due date picker - only show for text notes */}
+          {mode === "text" && (
+            <DueDatePicker dueDate={dueDate} onChange={handleDueDateChange} />
+          )}
 
           {/* Spacer */}
           <div className="flex-1" />
