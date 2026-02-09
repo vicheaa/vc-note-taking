@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { GripVertical, X, Calendar } from "lucide-react";
 import { Task } from "@/types/database.types";
 
-interface TaskItemProps {
+export interface TaskItemProps {
   task: Task;
   onToggle: (id: string, isCompleted: boolean) => void;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   onDueDateChange: (id: string, dueDate: string | null) => void;
   isNew?: boolean;
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
 }
 
 export function TaskItem({
@@ -18,6 +20,8 @@ export function TaskItem({
   onDelete,
   onDueDateChange,
   isNew = false,
+  dragHandleProps,
+  isDragging = false,
 }: TaskItemProps) {
   const [content, setContent] = useState(task.content);
   const [isHovered, setIsHovered] = useState(false);
@@ -115,25 +119,45 @@ export function TaskItem({
 
   return (
     <div
-      className="group flex items-center gap-2 py-1.5 px-1 -mx-1 rounded-md hover:bg-slate-50 transition-colors"
+      className={`group flex items-center gap-2.5 py-2 px-2 -mx-2 rounded-lg transition-all duration-200 ease-out
+        ${isDragging ? "bg-slate-200 shadow-lg ring-2 ring-blue-300" : isHovered ? "bg-slate-100/80 shadow-sm" : "hover:bg-slate-50"}
+        ${task.is_completed ? "opacity-75" : ""}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Drag handle */}
       <button
-        className="cursor-grab opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity"
+        className={`cursor-grab active:cursor-grabbing transition-all duration-200 hover:scale-110 touch-none
+          ${dragHandleProps ? "opacity-40 hover:opacity-100" : "opacity-0 group-hover:opacity-40 hover:!opacity-100"}`}
         title="Drag to reorder"
+        {...dragHandleProps}
       >
         <GripVertical className="w-4 h-4 text-slate-400" />
       </button>
 
-      {/* Checkbox */}
-      <input
-        type="checkbox"
-        checked={task.is_completed}
-        onChange={() => onToggle(task.id, task.is_completed)}
-        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-      />
+      {/* Custom Checkbox */}
+      <div className="relative flex-shrink-0">
+        <input
+          type="checkbox"
+          checked={task.is_completed}
+          onChange={() => onToggle(task.id, task.is_completed)}
+          className="peer sr-only"
+          id={`task-${task.id}`}
+        />
+        <label
+          htmlFor={`task-${task.id}`}
+          className={`flex items-center justify-center w-5 h-5 rounded-full border-2 cursor-pointer transition-all duration-200
+            ${task.is_completed 
+              ? "bg-gradient-to-br from-emerald-400 to-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200" 
+              : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"}`}
+        >
+          {task.is_completed && (
+            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </label>
+      </div>
 
       {/* Content input */}
       <input
@@ -145,14 +169,16 @@ export function TaskItem({
         onFocus={() => { isFocusedRef.current = true; }}
         onBlur={handleBlur}
         placeholder="List item"
-        className={`flex-1 bg-transparent border-none outline-none text-sm ${
-          task.is_completed ? "text-slate-400 line-through" : "text-slate-700"
+        className={`flex-1 bg-transparent border-none outline-none text-sm transition-colors duration-200 ${
+          task.is_completed 
+            ? "text-slate-400 line-through decoration-slate-300" 
+            : "text-slate-700 placeholder:text-slate-400"
         }`}
       />
 
       {/* Due date badge or picker */}
       {task.due_date ? (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-blue-50 text-blue-600">
+        <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 border border-blue-100 shadow-sm">
           <Calendar className="w-3 h-3" />
           <span>{formatDueDate(task.due_date)}</span>
           <button
@@ -160,21 +186,23 @@ export function TaskItem({
               e.stopPropagation();
               onDueDateChange(task.id, null);
             }}
-            className="ml-0.5 hover:bg-blue-100 rounded transition-colors"
+            className="ml-0.5 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
         </div>
       ) : (
-        isHovered && (
-          <button
-            onClick={() => dateInputRef.current?.showPicker()}
-            className="p-1 rounded hover:bg-slate-200 transition-colors"
-            title="Add due date"
-          >
-            <Calendar className="w-4 h-4 text-slate-400" />
-          </button>
-        )
+        <button
+          onClick={() => dateInputRef.current?.showPicker()}
+          className={`p-1.5 rounded-lg transition-all duration-200 ${
+            isHovered 
+              ? "opacity-100 hover:bg-slate-200 hover:scale-110" 
+              : "opacity-0"
+          }`}
+          title="Add due date"
+        >
+          <Calendar className="w-4 h-4 text-slate-400" />
+        </button>
       )}
 
       {/* Hidden date input */}
@@ -187,15 +215,17 @@ export function TaskItem({
       />
 
       {/* Delete button */}
-      {isHovered && (
-        <button
-          onClick={() => onDelete(task.id)}
-          className="p-1 rounded hover:bg-slate-200 transition-colors"
-          title="Delete task"
-        >
-          <X className="w-4 h-4 text-slate-400" />
-        </button>
-      )}
+      <button
+        onClick={() => onDelete(task.id)}
+        className={`p-1.5 rounded-lg transition-all duration-200 ${
+          isHovered 
+            ? "opacity-100 hover:bg-red-100 hover:scale-110" 
+            : "opacity-0"
+        }`}
+        title="Delete task"
+      >
+        <X className={`w-4 h-4 transition-colors ${isHovered ? "text-red-400 hover:text-red-500" : "text-slate-400"}`} />
+      </button>
     </div>
   );
 }

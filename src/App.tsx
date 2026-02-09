@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Login } from "@/pages/Login";
 import { Dashboard } from "@/pages/Dashboard";
 import { TrashPage } from "@/pages/TrashPage";
+import { ArchivePage } from "@/pages/ArchivePage";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingPage } from "@/components/ui/LoadingSpinner";
 
@@ -48,6 +49,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TrashPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/archive"
+            element={
+              <ProtectedRoute>
+                <ArchivePage />
               </ProtectedRoute>
             }
           />

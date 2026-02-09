@@ -120,7 +120,7 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        "flex flex-col h-full",
+        "flex flex-col",
         className
       )}
     >

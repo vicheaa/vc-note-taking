@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Trash2, Pin, Edit3, Calendar, CheckSquare, Square } from "lucide-react";
+import { Trash2, Pin, Edit3, Calendar, CheckSquare, Square, Archive } from "lucide-react";
 import { Note } from "@/types/database.types";
-import { useDeleteNote, useTogglePin } from "@/hooks/useNotes";
+import { useDeleteNote, useTogglePin, useArchiveNote } from "@/hooks/useNotes";
 import { useTasks, useToggleTaskCompletion } from "@/hooks/useTasks";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const deleteNote = useDeleteNote();
   const togglePin = useTogglePin();
+  const archiveNote = useArchiveNote();
   const { data: tasks = [] } = useTasks(note.id);
   const toggleTaskCompletion = useToggleTaskCompletion();
 
@@ -32,6 +33,11 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(note);
+  };
+
+  const handleArchive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    archiveNote.mutate(note.id);
   };
 
   const handleToggleTask = (e: React.MouseEvent, taskId: string, isCompleted: boolean) => {
@@ -183,6 +189,13 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
             title="Edit note"
           >
             <Edit3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleArchive}
+            className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+            title="Archive note"
+          >
+            <Archive className="h-4 w-4" />
           </button>
           <button
             onClick={handleDelete}

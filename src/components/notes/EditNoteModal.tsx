@@ -9,7 +9,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Note } from "@/types/database.types";
 import { useUpdateNote } from "@/hooks/useNotes";
 import { useTasks } from "@/hooks/useTasks";
-import { Palette, Type, CheckSquare, Check } from "lucide-react";
+import { Type, CheckSquare, Check } from "lucide-react";
 
 interface EditNoteModalProps {
   note: Note | null;
@@ -43,17 +43,28 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
       setBgColor(note.bg_color || "#ffffff");
       setDueDate(note.due_date || null);
       setShowColorPicker(false);
-      // Auto-detect mode based on existing tasks
-      // Will be updated when tasks load
+      
+      // Restore last active mode from localStorage
+      const savedMode = localStorage.getItem(`note-mode-${note.id}`) as NoteMode | null;
+      if (savedMode && (savedMode === "text" || savedMode === "tasks")) {
+        setMode(savedMode);
+      } else {
+        // Default to text mode if no saved preference
+        setMode("text");
+      }
     }
   }, [note]);
 
-  // Switch to tasks mode if note has tasks
+  // Switch to tasks mode if note has tasks and no saved mode preference
   useEffect(() => {
-    if (hasTasks) {
-      setMode("tasks");
+    if (note && hasTasks) {
+      const savedMode = localStorage.getItem(`note-mode-${note.id}`);
+      // Only auto-switch to tasks if there's no saved preference
+      if (!savedMode) {
+        setMode("tasks");
+      }
     }
-  }, [hasTasks]);
+  }, [note, hasTasks]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -148,6 +159,14 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
     debouncedSave(title, content, bgColor, newDueDate);
   };
 
+  // Handle mode change with localStorage persistence
+  const handleModeChange = (newMode: NoteMode) => {
+    setMode(newMode);
+    if (note) {
+      localStorage.setItem(`note-mode-${note.id}`, newMode);
+    }
+  };
+
   const handleSave = async () => {
     if (!note) return;
 
@@ -225,10 +244,10 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
   if (!note) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="" bgColor={bgColor}>
-      <div className="flex flex-col h-[calc(100vh-8rem)] md:h-auto md:max-h-[70vh]">
+    <Modal isOpen={isOpen} onClose={handleClose} title="" bgColor={bgColor} >
+      <div className="flex flex-col h-[calc(100vh-8rem)] md:h-auto md:max-h-[90vh]">
         {/* Title input with mode toggle */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 pt-1">
           <Input
             type="text"
             placeholder={mode === "tasks" ? "Task" : "Title"}
@@ -240,13 +259,13 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
         </div>
 
         {/* Content area - switches based on mode */}
-        <div className="flex-1 min-h-0 overflow-y-auto mt-4">
+        <div className="flex-1 min-h-0 overflow-y-auto mt-2">
           {mode === "text" ? (
             <RichTextEditor
               content={content}
               onChange={handleContentChange}
               placeholder="Take a note..."
-              className="min-h-[200px]"
+              className="min-h-[200px] h-full"
             />
           ) : (
             <TaskList noteId={note.id} />
@@ -275,7 +294,7 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
           {/* Mode toggle buttons */}
           <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => setMode("text")}
+              onClick={() => handleModeChange("text")}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
                 mode === "text"
                   ? "bg-slate-100 text-slate-700"
@@ -286,7 +305,7 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
               <Type className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setMode("tasks")}
+              onClick={() => handleModeChange("tasks")}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
                 mode === "tasks"
                   ? "bg-slate-100 text-slate-700"
@@ -308,13 +327,13 @@ export function EditNoteModal({ note, isOpen, onClose }: EditNoteModalProps) {
 
           {/* Color picker - hidden on mobile */}
           <div className="hidden md:block relative">
-            <button
+            {/* <button
               onClick={() => setShowColorPicker(!showColorPicker)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors text-sm text-slate-600"
             >
               <Palette className="w-4 h-4" />
               <span>Background</span>
-            </button>
+            </button> */}
 
             {showColorPicker && (
               <>

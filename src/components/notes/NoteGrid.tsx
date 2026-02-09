@@ -17,7 +17,16 @@ export function NoteGrid({
   isSearching = false,
 }: NoteGridProps) {
   const pinnedNotes = notes.filter((note) => note.is_pinned);
-  const otherNotes = notes.filter((note) => !note.is_pinned);
+  const unpinnedNotes = notes.filter((note) => !note.is_pinned);
+  
+  // Get the 4 most recently updated notes (excluding pinned)
+  const recentNotes = [...unpinnedNotes]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 4);
+  
+  // Get remaining notes (not pinned, not in recent)
+  const recentIds = new Set(recentNotes.map((n) => n.id));
+  const otherNotes = unpinnedNotes.filter((note) => !recentIds.has(note.id));
 
   if (notes.length === 0) {
     return (
@@ -64,6 +73,20 @@ export function NoteGrid({
           </h2>
           <div className={gridClasses}>
             {pinnedNotes.map((note) => (
+              <NoteCard key={note.id} note={note} onEdit={onEditNote} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Notes */}
+      {recentNotes.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-600">
+            Recent
+          </h2>
+          <div className={gridClasses}>
+            {recentNotes.map((note) => (
               <NoteCard key={note.id} note={note} onEdit={onEditNote} />
             ))}
           </div>

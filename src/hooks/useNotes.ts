@@ -9,7 +9,7 @@ const getTrashCutoffDate = () => {
   return date.toISOString();
 };
 
-// Fetch all active notes for the current user (not in trash)
+// Fetch all active notes for the current user (not in trash, not archived)
 export function useNotes() {
   return useQuery({
     queryKey: ["notes"],
@@ -18,6 +18,7 @@ export function useNotes() {
         .from("notes")
         .select("*")
         .is("deleted_at", null)
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -279,3 +280,98 @@ export function useTogglePin() {
   });
 }
 
+// Fetch all archived notes
+export function useArchivedNotes() {
+  return useQuery({
+    queryKey: ["archived-notes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*")
+        .is("deleted_at", null)
+        .eq("is_archived", true)
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Note[];
+    },
+  });
+}
+
+// Archive a note
+export function useArchiveNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("notes")
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Note;
+    },
+    onMutate: async (noteId) => {
+      await queryClient.cancelQueries({ queryKey: ["notes"] });
+
+      const previousNotes = queryClient.getQueryData<Note[]>(["notes"]);
+
+      queryClient.setQueryData<Note[]>(["notes"], (old) =>
+        old ? old.filter((note) => note.id !== noteId) : []
+      );
+
+      return { previousNotes };
+    },
+    onError: (_err, _noteId, context) => {
+      if (context?.previousNotes) {
+        queryClient.setQueryData(["notes"], context.previousNotes);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-notes"] });
+    },
+  });
+}
+
+// Unarchive a note
+export function useUnarchiveNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from("notes")
+        .update({ is_archived: false, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Note;
+    },
+    onMutate: async (noteId) => {
+      await queryClient.cancelQueries({ queryKey: ["archived-notes"] });
+
+      const previousArchivedNotes = queryClient.getQueryData<Note[]>(["archived-notes"]);
+
+      queryClient.setQueryData<Note[]>(["archived-notes"], (old) =>
+        old ? old.filter((note) => note.id !== noteId) : []
+      );
+
+      return { previousArchivedNotes };
+    },
+    onError: (_err, _noteId, context) => {
+      if (context?.previousArchivedNotes) {
+        queryClient.setQueryData(["archived-notes"], context.previousArchivedNotes);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-notes"] });
+    },
+  });
+}
