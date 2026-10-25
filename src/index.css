@@ -216,6 +216,35 @@ body {
 .composer-add:hover { background: #4d61ff; }
 
 @media (max-width: 760px) {
+  .notes-sidebar {
+    inset: auto 16px calc(12px + env(safe-area-inset-bottom));
+    z-index: 45;
+    width: auto;
+    height: 72px;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 5px 10px;
+    border: 1px solid #292d36;
+    border-radius: 999px;
+    background: #101116;
+    box-shadow: 0 12px 32px #10111638;
+  }
+  .notes-logo { display: none; }
+  .sidebar-navigation { flex: 1; flex-direction: row; justify-content: space-between; gap: 4px; min-width: 0; margin: 0 12px 0 4px; }
+  .sidebar-button { width: 42px; height: 48px; flex-shrink: 0; border-radius: 50%; color: #d6d9e0; }
+  .sidebar-button:hover { background: #242630; }
+  .sidebar-button.is-active { display: flex; width: auto; min-width: 112px; align-items: center; justify-content: center; gap: 10px; padding: 0 17px; border-radius: 999px; background: #354cff; color: #fff; }
+  .mobile-nav-label { display: inline; font-size: 15px; font-weight: 550; }
+  .mobile-new-note { display: grid; width: 50px; height: 50px; background: #fff; color: #101318; }
+  .mobile-new-note:hover { background: #f0f1f4; }
+  .sidebar-account { flex-shrink: 0; margin: 0; }
+  .account-avatar { width: 40px; height: 40px; background: #292d36; }
+  .account-menu { right: 0; bottom: calc(100% + 8px); left: auto; }
+  .notes-workspace { margin-left: 0; }
+  .notes-main { padding-bottom: calc(144px + env(safe-area-inset-bottom)); }
+  .note-composer-dock { display: none; }
+  .note-editor-workspace { inset: 0 0 calc(64px + env(safe-area-inset-bottom)) 0; }
+  .editor-formatbar { bottom: calc(76px + env(safe-area-inset-bottom)); }
   .notes-main { width: calc(100% - 48px); padding-top: 38px; }
   .notes-heading-line h1 { font-size: 38px; }
   .notes-count { font-size: 10px; }
@@ -226,9 +255,7 @@ body {
 }
 
 @media (max-width: 480px) {
-  .notes-sidebar { width: 56px; padding-top: 18px; }
-  .notes-workspace { margin-left: 56px; }
-  .notes-main { width: calc(100% - 32px); padding-top: 30px; padding-bottom: 120px; }
+  .notes-main { width: calc(100% - 32px); padding-top: 30px; }
   .notes-heading-line { gap: 8px; }
   .notes-heading-line h1 { font-size: 34px; letter-spacing: -1.4px; }
   .notes-count { font-size: 9px; letter-spacing: 0.7px; }
@@ -242,7 +269,7 @@ body {
   .note-row-meta { display: none; }
   .note-row-actions { right: 8px; }
   .note-row:hover .note-row-copy, .note-row:focus-within .note-row-copy { padding-right: 24px; }
-  .note-composer-dock { bottom: max(18px, env(safe-area-inset-bottom)); left: calc(50% + 28px); width: min(282px, calc(100vw - 80px)); gap: 8px; padding-left: 14px; }
+  .note-composer-dock { left: 50%; width: min(282px, calc(100vw - 32px)); gap: 8px; padding-left: 14px; }
   .composer-prompt { font-size: 13px; }
   .composer-shortcut { display: none; }
 }
@@ -347,7 +374,7 @@ body {
   .editor-writing-area { width: calc(100% - 40px); padding-top: 34px; }
   .editor-title-input { height: 48px; margin-bottom: 22px; font-size: 34px; line-height: 48px; }
   .note-editor-shell .editor-writing-area .editor-prose { font-size: 17px; line-height: 1.8; letter-spacing: -0.35px; }
-  .editor-formatbar { bottom: max(18px, env(safe-area-inset-bottom)); gap: 2px; max-width: calc(100vw - 84px); height: 52px; padding: 6px; border-radius: 17px; }
+  .editor-formatbar { bottom: calc(76px + env(safe-area-inset-bottom)); gap: 2px; max-width: calc(100vw - 84px); height: 52px; padding: 6px; border-radius: 17px; }
   .editor-format-button { width: 30px; height: 38px; border-radius: 9px; }
   .editor-format-divider { height: 18px; margin: 0 2px; }
   .editor-footer { bottom: 85px; left: 20px; max-width: calc(100% - 40px); flex-wrap: wrap; gap: 6px 8px; font-size: 8px; letter-spacing: 0.5px; }
@@ -357,9 +384,18 @@ body {
 }
 
 @media (max-width: 480px) {
-  .note-editor-workspace { left: 56px; }
+  .note-editor-workspace { left: 0; }
   .editor-formatbar { left: calc(50% + 28px); gap: 1px; }
   .editor-format-button { width: 26px; }
+}
+
+@media (max-width: 370px) {
+  .notes-sidebar { inset-inline: 12px; padding-inline: 8px; }
+  .sidebar-navigation { gap: 2px; margin-right: 8px; }
+  .sidebar-button { width: 34px; }
+  .sidebar-button.is-active { min-width: 100px; gap: 7px; padding-inline: 10px; }
+  .mobile-new-note { width: 50px; height: 50px; }
+  .account-avatar { width: 38px; height: 38px; }
 }
 
 @media (max-width: 370px) {

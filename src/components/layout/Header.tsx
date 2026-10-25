@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlignLeft, Archive, LogOut, Search, Trash2 } from "lucide-react";
+import { AlignLeft, Archive, LogOut, Plus, Search, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -8,10 +8,11 @@ interface HeaderProps {
   onSearchToggle: () => void;
   onShowNotes: () => void;
   onNavigate?: (path: string) => void;
+  onNewNote?: () => void;
   beforeSignOut?: () => Promise<boolean>;
 }
 
-export function Header({ isSearching, onSearchToggle, onShowNotes, onNavigate, beforeSignOut }: HeaderProps) {
+export function Header({ isSearching, onSearchToggle, onShowNotes, onNavigate, onNewNote, beforeSignOut }: HeaderProps) {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [showAccount, setShowAccount] = useState(false);
@@ -30,10 +31,12 @@ export function Header({ isSearching, onSearchToggle, onShowNotes, onNavigate, b
       <nav className="sidebar-navigation" aria-label="Notes">
         <button className={`sidebar-button ${!isSearching ? "is-active" : ""}`} onClick={onShowNotes} title="All notes" aria-label="All notes" aria-current={!isSearching ? "page" : undefined}>
           <AlignLeft size={18} />
+          <span className="mobile-nav-label">Notes</span>
         </button>
         <button className={`sidebar-button ${isSearching ? "is-active" : ""}`} onClick={onSearchToggle} title="Search notes (⌘/Ctrl K)" aria-label="Search notes" aria-pressed={isSearching}>
           <Search size={19} />
         </button>
+        {onNewNote && <button type="button" className="sidebar-button mobile-new-note" onClick={onNewNote} title="New note" aria-label="New note"><Plus size={30} /></button>}
         <Link to="/trash" className="sidebar-button" title="Trash" aria-label="Trash" onClick={(event) => { if (onNavigate) { event.preventDefault(); onNavigate("/trash"); } }}>
           <Trash2 size={18} />
         </Link>

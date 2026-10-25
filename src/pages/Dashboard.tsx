@@ -60,7 +60,7 @@ export function Dashboard() {
 
   return (
     <div className="notes-app">
-      <Header isSearching={showSearch} onSearchToggle={() => showSearch ? showAllNotes() : openSearch()} onShowNotes={showAllNotes} />
+      <Header isSearching={showSearch} onSearchToggle={() => showSearch ? showAllNotes() : openSearch()} onShowNotes={showAllNotes} onNewNote={() => setTriggerNewNote(true)} />
       <div className="notes-workspace">
         <main className="notes-main">
           <header className="notes-page-header">
