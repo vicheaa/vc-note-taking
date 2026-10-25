@@ -1,211 +1,45 @@
-import { useState } from "react";
-import { Trash2, Pin, Edit3, Calendar, CheckSquare, Square, Archive } from "lucide-react";
-import { Note } from "@/types/database.types";
+import { AlignLeft, Archive, Link2, Pin, Square, Terminal, Trash2 } from "lucide-react";
+import { Note, Task } from "@/types/database.types";
 import { useDeleteNote, useTogglePin, useArchiveNote } from "@/hooks/useNotes";
-import { useTasks, useToggleTaskCompletion } from "@/hooks/useTasks";
-import { cn } from "@/lib/utils";
+import { formatNoteDate, getNoteKind, notePlainText } from "@/lib/notePresentation";
 
 interface NoteCardProps {
   note: Note;
+  tasks: Task[];
   onEdit: (note: Note) => void;
+  featured?: boolean;
 }
 
-export function NoteCard({ note, onEdit }: NoteCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
+const icons = { text: AlignLeft, checklist: Square, code: Terminal, link: Link2 };
+
+export function NoteCard({ note, tasks, onEdit, featured = false }: NoteCardProps) {
   const deleteNote = useDeleteNote();
   const togglePin = useTogglePin();
   const archiveNote = useArchiveNote();
-  const { data: tasks = [] } = useTasks(note.id);
-  const toggleTaskCompletion = useToggleTaskCompletion();
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("Move this note to trash?")) {
-      deleteNote.mutate(note.id);
-    }
-  };
-
-  const handlePin = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    togglePin.mutate({ id: note.id, isPinned: note.is_pinned });
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onEdit(note);
-  };
-
-  const handleArchive = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    archiveNote.mutate(note.id);
-  };
-
-  const handleToggleTask = (e: React.MouseEvent, taskId: string, isCompleted: boolean) => {
-    e.stopPropagation();
-    toggleTaskCompletion.mutate({ id: taskId, noteId: note.id, isCompleted });
-  };
-
-  // Format due date for display
-  const formatDueDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-    if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    }
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // Check if due date is past
-  const isOverdue = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
-  };
-
-  const hasTasks = tasks.length > 0;
-  const incompleteTasks = tasks.filter((t) => !t.is_completed);
-  const completedTasks = tasks.filter((t) => t.is_completed);
+  const kind = getNoteKind(note, tasks);
+  const Icon = icons[kind];
+  const completed = tasks.filter((task) => task.is_completed).length;
+  const preview = kind === "checklist" ? (tasks.find((task) => !task.is_completed) || tasks[0])?.content : notePlainText(note.content);
+  const isPending = deleteNote.isPending || togglePin.isPending || archiveNote.isPending;
 
   return (
-    <div
-      onClick={handleEdit}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={cn(
-        "group relative rounded-lg border border-slate-200 bg-white p-4 transition-shadow hover:shadow-md cursor-pointer",
-        note.is_pinned && "ring-1 ring-note-yellow-400"
-      )}
-      style={{ backgroundColor: note.bg_color }}
-    >
-      {/* Content */}
-      <div>
-        {/* Title */}
-        {note.title && (
-          <h3 className="mb-2 font-semibold text-slate-900 line-clamp-2">
-            {note.title}
-          </h3>
-        )}
-
-        {/* Task preview or content */}
-        {hasTasks ? (
-          <div className="space-y-1.5">
-            {/* Show first few incomplete tasks with interactive checkboxes */}
-            {incompleteTasks.slice(0, 4).map((task) => (
-              <div key={task.id} className="flex items-start gap-2 text-sm">
-                <button
-                  onClick={(e) => handleToggleTask(e, task.id, task.is_completed)}
-                  className="flex-shrink-0 mt-0.5 hover:scale-110 transition-transform"
-                  title="Mark as complete"
-                >
-                  <Square className="w-4 h-4 text-slate-400 hover:text-blue-500" />
-                </button>
-                <span className="text-slate-700 line-clamp-1">{task.content}</span>
-              </div>
-            ))}
-            {/* Show completed tasks with strikethrough */}
-            {completedTasks.slice(0, 4).map((task) => (
-              <div key={task.id} className="flex items-start gap-2 text-sm">
-                <button
-                  onClick={(e) => handleToggleTask(e, task.id, task.is_completed)}
-                  className="flex-shrink-0 mt-0.5 hover:scale-110 transition-transform"
-                  title="Mark as incomplete"
-                >
-                  <CheckSquare className="w-4 h-4 text-slate-400 hover:text-blue-500" />
-                </button>
-                <span className="text-slate-400 line-through line-clamp-1">{task.content}</span>
-              </div>
-            ))}
-            {/* Show remaining completed count if more than 4 */}
-            {completedTasks.length > 4 && (
-              <div className="text-xs text-slate-400">
-                + {completedTasks.length - 4} more completed
-              </div>
-            )}
-            {/* Show remaining incomplete count */}
-            {incompleteTasks.length > 4 && (
-              <div className="text-xs text-slate-400">
-                + {incompleteTasks.length - 4} more
-              </div>
-            )}
-          </div>
-        ) : (
-          note.content && (
-            <div
-              className="text-sm text-slate-700 line-clamp-5 prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-semibold"
-              dangerouslySetInnerHTML={{ __html: note.content }}
-            />
-          )
-        )}
-
-        {/* Due date badge */}
-        {note.due_date && (
-          <div className="mt-3">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md",
-                isOverdue(note.due_date)
-                  ? "bg-red-50 text-red-600 border border-red-200"
-                  : "bg-blue-50 text-blue-600 border border-blue-200"
-              )}
-            >
-              <Calendar className="w-3 h-3" />
-              {formatDueDate(note.due_date)}
-            </span>
-          </div>
-        )}
+    <article className={`note-row ${featured ? "note-row--featured" : ""}`}>
+      <button className="note-row-open" onClick={() => onEdit(note)} aria-label={`Open ${note.title || "Untitled note"}`}>
+        <span className="note-type-icon"><Icon size={16} strokeWidth={1.7} /></span>
+        <span className="note-row-copy">
+          <span className="note-row-title">{note.title || "Untitled note"}</span>
+          <span className={`note-row-preview ${kind === "code" || kind === "link" ? "is-monospace" : ""}`}>{preview || "No additional text"}</span>
+        </span>
+        <span className="note-row-meta">
+          {kind === "checklist" ? <span aria-label={`${completed} of ${tasks.length} tasks completed`}><span className="task-completed-count">{completed}</span>/{tasks.length}</span> : featured ? formatNoteDate(note.updated_at) : kind === "link" ? "LINK" : kind.toUpperCase()}
+        </span>
+      </button>
+      <div className="note-row-actions" aria-label={`Actions for ${note.title || "Untitled note"}`}>
+        <button title={note.is_pinned ? "Unpin note" : "Pin note"} aria-label={note.is_pinned ? "Unpin note" : "Pin note"} aria-pressed={note.is_pinned} disabled={isPending} onClick={() => togglePin.mutate({ id: note.id, isPinned: note.is_pinned })}><Pin size={15} fill={note.is_pinned ? "currentColor" : "none"} /></button>
+        <button title="Archive note" aria-label="Archive note" disabled={isPending} onClick={() => archiveNote.mutate(note.id)}><Archive size={15} /></button>
+        <button title="Move to trash" aria-label="Move to trash" className="note-delete-action" disabled={isPending} onClick={() => { if (confirm("Move this note to trash?")) deleteNote.mutate(note.id); }}><Trash2 size={15} /></button>
       </div>
-
-      {/* Action Icons */}
-      {isHovered && (
-        <div className="absolute bottom-2 right-2 flex gap-1 bg-white rounded-md shadow-sm p-1">
-          <button
-            onClick={handlePin}
-            className={cn(
-              "rounded-md p-1.5 transition-colors",
-              note.is_pinned
-                ? "text-note-yellow-600 hover:bg-note-yellow-50"
-                : "text-slate-600 hover:bg-slate-100"
-            )}
-            title={note.is_pinned ? "Unpin note" : "Pin note"}
-          >
-            <Pin
-              className="h-4 w-4"
-              fill={note.is_pinned ? "currentColor" : "none"}
-            />
-          </button>
-          <button
-            onClick={handleEdit}
-            className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Edit note"
-          >
-            <Edit3 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleArchive}
-            className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Archive note"
-          >
-            <Archive className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="rounded-md p-1.5 text-red-600 hover:bg-red-50 transition-colors"
-            title="Delete note"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-    </div>
+      {(deleteNote.isError || togglePin.isError || archiveNote.isError) && <p className="note-action-error" role="alert">Unable to update this note. Please try again.</p>}
+    </article>
   );
 }

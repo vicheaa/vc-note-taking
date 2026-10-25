@@ -1,141 +1,58 @@
-import { useState, useRef } from "react";
-import { Search, Grid3x3, List, LogOut, X, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { AlignLeft, Archive, LogOut, Search, Trash2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate, Link } from "react-router-dom";
-import { useTrashedNotes } from "@/hooks/useNotes";
 
 interface HeaderProps {
-  viewMode: "grid" | "list";
-  onViewModeChange: (mode: "grid" | "list") => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
+  isSearching: boolean;
+  onSearchToggle: () => void;
+  onShowNotes: () => void;
+  onNavigate?: (path: string) => void;
+  beforeSignOut?: () => Promise<boolean>;
 }
 
-export function Header({
-  viewMode,
-  onViewModeChange,
-  searchQuery,
-  onSearchChange,
-}: HeaderProps) {
-  const { signOut } = useAuth();
+export function Header({ isSearching, onSearchToggle, onShowNotes, onNavigate, beforeSignOut }: HeaderProps) {
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
-  const [showDropdown, setShowDropdown] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: trashedNotes } = useTrashedNotes();
+  const [showAccount, setShowAccount] = useState(false);
 
   const handleLogout = async () => {
+    if (beforeSignOut && !await beforeSignOut()) return;
     await signOut();
     navigate("/login");
   };
 
-  const clearSearch = () => {
-    onSearchChange("");
-    searchInputRef.current?.focus();
-  };
-
-  const trashCount = trashedNotes?.length || 0;
-
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          {/* Left: Logo */}
-          <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-slate-900">VC-Note-Taking</h1>
-          </div>
-
-          {/* Middle: Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-2xl">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search notes..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="h-12 w-full rounded-lg bg-slate-100 pl-10 pr-10 text-sm outline-none transition-colors focus:bg-white focus:ring-2 focus:ring-slate-300"
-              />
-              {searchQuery && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-slate-200 transition-colors"
-                  title="Clear search"
-                >
-                  <X className="h-4 w-4 text-slate-500" />
-                </button>
-              )}
+    <aside className="notes-sidebar" aria-label="Main navigation">
+      <Link to="/dashboard" className="notes-logo" aria-label="VC Notes home" onClick={(event) => { if (onNavigate) { event.preventDefault(); onNavigate("/dashboard"); } else onShowNotes(); }}>
+        <span />
+      </Link>
+      <nav className="sidebar-navigation" aria-label="Notes">
+        <button className={`sidebar-button ${!isSearching ? "is-active" : ""}`} onClick={onShowNotes} title="All notes" aria-label="All notes" aria-current={!isSearching ? "page" : undefined}>
+          <AlignLeft size={18} />
+        </button>
+        <button className={`sidebar-button ${isSearching ? "is-active" : ""}`} onClick={onSearchToggle} title="Search notes (⌘/Ctrl K)" aria-label="Search notes" aria-pressed={isSearching}>
+          <Search size={19} />
+        </button>
+        <Link to="/trash" className="sidebar-button" title="Trash" aria-label="Trash" onClick={(event) => { if (onNavigate) { event.preventDefault(); onNavigate("/trash"); } }}>
+          <Trash2 size={18} />
+        </Link>
+      </nav>
+      <div className="sidebar-account">
+        {showAccount && (
+          <>
+            <button className="account-dismiss" aria-label="Close account menu" onClick={() => setShowAccount(false)} />
+            <div className="account-menu">
+              <p>{user?.email || "Your account"}</p>
+              <Link to="/archive" onClick={(event) => { if (onNavigate) { event.preventDefault(); onNavigate("/archive"); } }}><Archive size={16} /> Archived notes</Link>
+              <button onClick={handleLogout}><LogOut size={16} /> Sign out</button>
             </div>
-          </div>
-
-          {/* Right: View Toggle, Trash & Logout */}
-          <div className="flex items-center gap-2">
-            {/* View Toggle */}
-            <button
-              onClick={() =>
-                onViewModeChange(viewMode === "grid" ? "list" : "grid")
-              }
-              className="rounded-full p-2 hover:bg-slate-100 transition-colors"
-              title={
-                viewMode === "grid"
-                  ? "Switch to list view"
-                  : "Switch to grid view"
-              }
-            >
-              {viewMode === "grid" ? (
-                <List className="h-5 w-5 text-slate-700" />
-              ) : (
-                <Grid3x3 className="h-5 w-5 text-slate-700" />
-              )}
-            </button>
-
-            {/* Trash Link */}
-            <Link
-              to="/trash"
-              className="relative rounded-full p-2 hover:bg-slate-100 transition-colors"
-              title="Trash"
-            >
-              <Trash2 className="h-5 w-5 text-slate-700" />
-              {trashCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
-                  {trashCount > 9 ? "9+" : trashCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Logout Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="rounded-full p-2 hover:bg-slate-100 transition-colors"
-              >
-                <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-white text-sm font-medium">
-                  U
-                </div>
-              </button>
-
-              {showDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowDropdown(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg border border-slate-200 py-2 z-20">
-                    <button
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+          </>
+        )}
+        <button className="account-avatar" onClick={() => setShowAccount(!showAccount)} aria-label="Account menu" aria-expanded={showAccount}>
+          {(user?.email?.[0] || "U").toUpperCase()}
+        </button>
       </div>
-    </header>
+    </aside>
   );
 }
-

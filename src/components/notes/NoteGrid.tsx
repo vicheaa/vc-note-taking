@@ -1,113 +1,46 @@
-import { Note } from "@/types/database.types";
+import { AlignLeft, Search } from "lucide-react";
+import { Note, Task } from "@/types/database.types";
 import { NoteCard } from "./NoteCard";
-import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
 
 interface NoteGridProps {
   notes: Note[];
-  viewMode: "grid" | "list";
+  tasksByNote: Map<string, Task[]>;
   onEditNote: (note: Note) => void;
   isSearching?: boolean;
 }
 
-export function NoteGrid({
-  notes,
-  viewMode,
-  onEditNote,
-  isSearching = false,
-}: NoteGridProps) {
-  const pinnedNotes = notes.filter((note) => note.is_pinned);
-  const unpinnedNotes = notes.filter((note) => !note.is_pinned);
-  
-  // Get the 4 most recently updated notes (excluding pinned)
-  const recentNotes = [...unpinnedNotes]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 4);
-  
-  // Get remaining notes (not pinned, not in recent)
-  const recentIds = new Set(recentNotes.map((n) => n.id));
-  const otherNotes = unpinnedNotes.filter((note) => !recentIds.has(note.id));
+export function NoteGrid({ notes, tasksByNote, onEditNote, isSearching = false }: NoteGridProps) {
+  const pinned = notes.filter((note) => note.is_pinned);
+  const unpinned = notes.filter((note) => !note.is_pinned).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  const sections = [
+    { label: "Pinned", notes: pinned },
+    { label: "Recent", notes: unpinned.slice(0, 4) },
+    { label: "Earlier", notes: unpinned.slice(4) },
+  ];
 
-  if (notes.length === 0) {
+  if (!notes.length) {
+    const Icon = isSearching ? Search : AlignLeft;
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        {isSearching ? (
-          <>
-            <Search className="mb-4 h-16 w-16 text-slate-300" />
-            <h3 className="text-xl font-medium text-slate-900 mb-2">
-              No notes found
-            </h3>
-            <p className="text-slate-600">
-              Try searching with different keywords
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="mb-4 text-6xl">📝</div>
-            <h3 className="text-xl font-medium text-slate-900 mb-2">
-              No notes yet
-            </h3>
-            <p className="text-slate-600">
-              Click "Take a note..." above to create your first note
-            </p>
-          </>
-        )}
+      <div className="notes-empty">
+        <div className="notes-empty-icon"><Icon size={24} /></div>
+        <h2>{isSearching ? "No matching notes" : "A little space for your thoughts"}</h2>
+        <p>{isSearching ? "Try another filter or a different search." : "Take a note below to get started."}</p>
       </div>
     );
   }
 
-  const gridClasses = cn(
-    "grid gap-4",
-    viewMode === "grid"
-      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-      : "grid-cols-1 max-w-2xl mx-auto"
-  );
-
   return (
-    <div className="px-4 pb-8">
-      {/* Pinned Notes */}
-      {pinnedNotes.length > 0 && (
-        <div className="mb-8">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-600">
-            Pinned
-          </h2>
-          <div className={gridClasses}>
-            {pinnedNotes.map((note) => (
-              <NoteCard key={note.id} note={note} onEdit={onEditNote} />
+    <div className="note-sections">
+      {sections.filter((section) => section.notes.length > 0).map((section) => (
+        <section className="note-section" key={section.label} aria-labelledby={`section-${section.label.toLowerCase()}`}>
+          <h2 className={`note-section-label ${section.label === "Pinned" ? "is-pinned" : ""}`} id={`section-${section.label.toLowerCase()}`}>{section.label}</h2>
+          <div className="note-list">
+            {section.notes.map((note, index) => (
+              <NoteCard key={note.id} note={note} tasks={tasksByNote.get(note.id) || []} onEdit={onEditNote} featured={section.label === "Recent" && index === 0} />
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Recent Notes */}
-      {recentNotes.length > 0 && (
-        <div className="mb-8">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-600">
-            Recent
-          </h2>
-          <div className={gridClasses}>
-            {recentNotes.map((note) => (
-              <NoteCard key={note.id} note={note} onEdit={onEditNote} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Other Notes */}
-      {otherNotes.length > 0 && (
-        <div>
-          {pinnedNotes.length > 0 && (
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-600">
-              Others
-            </h2>
-          )}
-          <div className={gridClasses}>
-            {otherNotes.map((note) => (
-              <NoteCard key={note.id} note={note} onEdit={onEditNote} />
-            ))}
-          </div>
-        </div>
-      )}
+        </section>
+      ))}
     </div>
   );
 }

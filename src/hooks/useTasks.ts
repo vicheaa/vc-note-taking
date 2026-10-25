@@ -1,10 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Task, TaskInsert, TaskUpdate } from "@/types/database.types";
 
-// Fetch all tasks for a specific note
-export function useTasks(noteId: string | null) {
-  return useQuery({
+function taskQueryOptions(noteId: string | null) {
+  return {
     queryKey: ["tasks", noteId],
     queryFn: async () => {
       if (!noteId) return [];
@@ -19,7 +18,16 @@ export function useTasks(noteId: string | null) {
       return data as Task[];
     },
     enabled: !!noteId,
-  });
+  };
+}
+
+// Share task queries between the dashboard, filters, and note editor.
+export function useTasks(noteId: string | null) {
+  return useQuery(taskQueryOptions(noteId));
+}
+
+export function useTasksForNotes(noteIds: string[]) {
+  return useQueries({ queries: noteIds.map(taskQueryOptions) });
 }
 
 // Create a new task

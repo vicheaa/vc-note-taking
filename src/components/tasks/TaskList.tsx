@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Plus, ChevronDown } from "lucide-react";
 import {
   DndContext,
@@ -28,11 +28,13 @@ import {
 
 interface TaskListProps {
   noteId: string;
+  initialTaskId?: string | null;
 }
 
-export function TaskList({ noteId }: TaskListProps) {
+export function TaskList({ noteId, initialTaskId = null }: TaskListProps) {
   const [showCompleted, setShowCompleted] = useState(true);
-  const [newTaskId, setNewTaskId] = useState<string | null>(null);
+  const [newTaskId, setNewTaskId] = useState<string | null>(initialTaskId);
+  useEffect(() => { if (initialTaskId) setNewTaskId(initialTaskId); }, [initialTaskId]);
   const { data: tasks = [], isLoading } = useTasks(noteId);
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
