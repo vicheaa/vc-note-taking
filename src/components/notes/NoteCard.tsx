@@ -1,7 +1,7 @@
 import { AlignLeft, Archive, Link2, Pin, Square, Terminal, Trash2 } from "lucide-react";
 import { Note, Task } from "@/types/database.types";
 import { useDeleteNote, useTogglePin, useArchiveNote } from "@/hooks/useNotes";
-import { formatNoteDate, getNoteKind, notePlainText } from "@/lib/notePresentation";
+import { formatNoteDate, getNoteKind, notePreview } from "@/lib/notePresentation";
 
 interface NoteCardProps {
   note: Note;
@@ -19,7 +19,7 @@ export function NoteCard({ note, tasks, onEdit, featured = false }: NoteCardProp
   const kind = getNoteKind(note, tasks);
   const Icon = icons[kind];
   const completed = tasks.filter((task) => task.is_completed).length;
-  const preview = kind === "checklist" ? (tasks.find((task) => !task.is_completed) || tasks[0])?.content : notePlainText(note.content);
+  const preview = kind === "checklist" ? (tasks.find((task) => !task.is_completed) || tasks[0])?.content : notePreview(note.content);
   const isPending = deleteNote.isPending || togglePin.isPending || archiveNote.isPending;
 
   return (

@@ -9,7 +9,8 @@ import { DueDatePicker } from "@/components/tasks/DueDatePicker";
 import { TaskList } from "@/components/tasks/TaskList";
 import { useCreateNote, useDeleteNote, useNotes, useTogglePin, useUpdateNote } from "@/hooks/useNotes";
 import { useCreateTask, useTasks } from "@/hooks/useTasks";
-import { getNoteKind, notePlainText } from "@/lib/notePresentation";
+import { getNoteKind, noteHasContent, notePlainText, notePreview } from "@/lib/notePresentation";
+import { deleteNoteImages, getNoteImagePaths } from "@/lib/noteImages";
 import { Note } from "@/types/database.types";
 
 export type NoteMode = "text" | "tasks";
@@ -58,28 +59,64 @@ export function NoteEditor({ note = null, initialMode = "text", onClose, onSelec
   const showRecentRef = useRef(false);
   showRecentRef.current = showRecent;
   const leavingRef = useRef(false);
+  const uploadingRef = useRef(false);
+  const uploadedImagePathsRef = useRef(new Set<string>());
+  const pendingImageDeletesRef = useRef(new Set<string>());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queueRef = useRef<Promise<Note | null>>(Promise.resolve(note));
   const draftRef = useRef<Draft>({ title: note?.title || null, content: note?.content || null, due_date: note?.due_date || null });
   const lastSavedRef = useRef(JSON.stringify(draftRef.current));
-  draftRef.current = { title: title.trim() || null, content: notePlainText(content) ? content : null, due_date: dueDate };
+  draftRef.current = { title: title.trim() || null, content: noteHasContent(content) ? content : null, due_date: dueDate };
+
+  const cleanRemovedImages = async () => {
+    const pending = [...pendingImageDeletesRef.current];
+    if (!pending.length) return true;
+    try {
+      await deleteNoteImages(pending);
+      pending.forEach((path) => pendingImageDeletesRef.current.delete(path));
+      return true;
+    } catch {
+      setSaveError("Your note was saved, but a removed photo could not be deleted from storage. Click Retry to try again.");
+      return false;
+    }
+  };
 
   // Queue every save, including the final save before changing notes or leaving.
   const saveDraft = useCallback((draft: Draft, forceCreate = false) => {
     const serialized = JSON.stringify(draft);
     const save = queueRef.current.catch(() => null).then(async () => {
-      if (!noteRef.current && !forceCreate && !draft.title && !draft.content) return null;
-      if (noteRef.current && serialized === lastSavedRef.current) return noteRef.current;
+      const currentImagePaths = new Set(getNoteImagePaths(draft.content));
+      uploadedImagePathsRef.current.forEach((path) => {
+        if (!currentImagePaths.has(path)) pendingImageDeletesRef.current.add(path);
+      });
+      if (!noteRef.current && !forceCreate && !draft.title && !draft.content) {
+        await cleanRemovedImages();
+        return null;
+      }
+      if (noteRef.current && serialized === lastSavedRef.current) {
+        await cleanRemovedImages();
+        return noteRef.current;
+      }
       setSaveStatus("saving");
       setSaveError(null);
       try {
+        const previousContent = noteRef.current?.content || null;
         const result = noteRef.current
           ? await updateNote({ id: noteRef.current.id, updates: draft })
           : await createNote({ ...draft, bg_color: "#ffffff", is_pinned: false });
+        const savedImagePaths = new Set(getNoteImagePaths(result.content));
+        getNoteImagePaths(previousContent).forEach((path) => {
+          if (!savedImagePaths.has(path)) pendingImageDeletesRef.current.add(path);
+        });
+        uploadedImagePathsRef.current.forEach((path) => {
+          if (savedImagePaths.has(path)) uploadedImagePathsRef.current.delete(path);
+          else pendingImageDeletesRef.current.add(path);
+        });
         noteRef.current = result;
         lastSavedRef.current = serialized;
         setSavedNote(result);
         setSaveStatus("saved");
+        await cleanRemovedImages();
         return result;
       } catch (error) {
         setSaveStatus("idle");
@@ -109,6 +146,10 @@ export function NoteEditor({ note = null, initialMode = "text", onClose, onSelec
   }, [savedNote, mode, note]);
 
   const finish = async (action: () => void | Promise<void>) => {
+    if (uploadingRef.current) {
+      setSaveError("Please wait for your photos to finish uploading before leaving this note.");
+      return false;
+    }
     if (leavingRef.current) return false;
     leavingRef.current = true;
     setIsLeaving(true);
@@ -190,6 +231,10 @@ export function NoteEditor({ note = null, initialMode = "text", onClose, onSelec
   };
 
   const handleDelete = () => {
+    if (uploadingRef.current) {
+      setSaveError("Please wait for your photos to finish uploading before leaving this note.");
+      return;
+    }
     if (!noteRef.current && !draftRef.current.title && !draftRef.current.content) { onClose(); return; }
     if (!confirm("Move this note to trash?")) return;
     void finish(async () => {
@@ -223,10 +268,10 @@ export function NoteEditor({ note = null, initialMode = "text", onClose, onSelec
           <div className="editor-recent-heading"><h2>History</h2><button aria-label="Close note history" onClick={() => setShowRecent(false)}><X size={16} /></button></div>
           <nav aria-label="Note history list">
             <button className="editor-recent-note is-current" aria-current="page" title={title || "Untitled"}>
-              <span>{title || "Untitled"}</span><p>{notePlainText(content) || (mode === "tasks" ? "Checklist" : "No additional text")}</p>
+              <span>{title || "Untitled"}</span><p>{notePreview(content) || (mode === "tasks" ? "Checklist" : "No additional text")}</p>
             </button>
             {historyNotes.map((item) => <button key={item.id} className="editor-recent-note" onClick={() => { void finish(() => onSelectNote(item)); }} title={item.title || "Untitled"} aria-label={`Open note ${item.title || "Untitled"}`} disabled={isLeaving}>
-              <span>{item.title || "Untitled"}</span><p className={getNoteKind(item) === "code" || getNoteKind(item) === "link" ? "is-monospace" : ""}>{notePlainText(item.content) || "No additional text"}</p>
+              <span>{item.title || "Untitled"}</span><p className={getNoteKind(item) === "code" || getNoteKind(item) === "link" ? "is-monospace" : ""}>{notePreview(item.content) || "No additional text"}</p>
             </button>)}
           </nav>
         </aside>
@@ -244,7 +289,13 @@ export function NoteEditor({ note = null, initialMode = "text", onClose, onSelec
             <div className="editor-writing-area">
               <input className="editor-title-input" aria-label="Note title" placeholder="Untitled" autoFocus={!note} value={title} onChange={(event) => setTitle(event.target.value)} disabled={isLeaving} />
               {dueDate && <div className="editor-due-date"><DueDatePicker dueDate={dueDate} onChange={setDueDate} /></div>}
-              <RichTextEditor content={content} onChange={setContent} placeholder="Start writing..." variant="workspace" mode={mode} onModeChange={changeMode} disabled={isLeaving}>
+              <RichTextEditor content={content} onChange={(nextContent) => {
+                draftRef.current.content = noteHasContent(nextContent) ? nextContent : null;
+                setContent(nextContent);
+              }} placeholder="Start writing..." variant="workspace" mode={mode} onModeChange={changeMode} disabled={isLeaving} onImageUploaded={(path) => uploadedImagePathsRef.current.add(path)} onUploadStateChange={(uploading) => {
+                uploadingRef.current = uploading;
+                if (!uploading) setSaveError((error) => error?.startsWith("Please wait for your photos") ? null : error);
+              }}>
                 {savedNote ? <TaskList key={savedNote.id} noteId={savedNote.id} initialTaskId={initialTaskId} /> : <button className="editor-first-task" onClick={addFirstTask} disabled={isLeaving}><Plus size={20} /> Add item</button>}
               </RichTextEditor>
             </div>

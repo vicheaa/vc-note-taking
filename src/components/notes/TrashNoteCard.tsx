@@ -2,6 +2,7 @@ import { RotateCcw, Trash2 } from "lucide-react";
 import { Note } from "@/types/database.types";
 import { useRestoreNote, usePermanentDeleteNote } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
+import { notePreview } from "@/lib/notePresentation";
 
 interface TrashNoteCardProps {
   note: Note;
@@ -37,14 +38,6 @@ export function TrashNoteCard({ note }: TrashNoteCardProps) {
 
   const daysRemaining = getDaysRemaining();
 
-  const truncateContent = (text: string | null, maxLines: number = 3) => {
-    if (!text) return "";
-    const lines = text.split("\n");
-    if (lines.length > maxLines) {
-      return lines.slice(0, maxLines).join("\n") + "...";
-    }
-    return text;
-  };
 
   return (
     <div
@@ -62,7 +55,7 @@ export function TrashNoteCard({ note }: TrashNoteCardProps) {
         )}
         {note.content && (
           <p className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-3">
-            {truncateContent(note.content)}
+            {notePreview(note.content)}
           </p>
         )}
       </div>

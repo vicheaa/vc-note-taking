@@ -2,6 +2,7 @@ import { ArchiveRestore, Pin, PinOff } from "lucide-react";
 import { Note } from "@/types/database.types";
 import { useUnarchiveNote, useTogglePin } from "@/hooks/useNotes";
 import { cn } from "@/lib/utils";
+import { notePreview } from "@/lib/notePresentation";
 
 interface ArchiveNoteCardProps {
   note: Note;
@@ -22,14 +23,6 @@ export function ArchiveNoteCard({ note, onEdit }: ArchiveNoteCardProps) {
     togglePin.mutate({ id: note.id, isPinned: note.is_pinned });
   };
 
-  const truncateContent = (text: string | null, maxLines: number = 3) => {
-    if (!text) return "";
-    const lines = text.split("\n");
-    if (lines.length > maxLines) {
-      return lines.slice(0, maxLines).join("\n") + "...";
-    }
-    return text;
-  };
 
   return (
     <div
@@ -48,7 +41,7 @@ export function ArchiveNoteCard({ note, onEdit }: ArchiveNoteCardProps) {
         )}
         {note.content && (
           <p className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-3">
-            {truncateContent(note.content)}
+            {notePreview(note.content)}
           </p>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Note, NoteInsert, NoteUpdate } from "@/types/database.types";
+import { deleteNoteImages, getNoteImagePaths } from "@/lib/noteImages";
 
 // Calculate date 7 days ago for trash filtering
 const getTrashCutoffDate = () => {
@@ -195,9 +196,15 @@ export function usePermanentDeleteNote() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: note, error: readError } = await supabase.from("notes").select("content").eq("id", id).maybeSingle();
+      if (readError) throw readError;
       const { error } = await supabase.from("notes").delete().eq("id", id);
 
       if (error) throw error;
+      if (note?.content) {
+        try { await deleteNoteImages(getNoteImagePaths(note.content)); }
+        catch (cleanupError) { console.error("Note deleted, but its photos could not be removed from storage.", cleanupError); }
+      }
       return id;
     },
     onMutate: async (noteId) => {
@@ -229,6 +236,13 @@ export function useEmptyTrash() {
   return useMutation({
     mutationFn: async () => {
       const cutoffDate = getTrashCutoffDate();
+      const { data: notesToDelete, error: readError } = await supabase
+        .from("notes")
+        .select("content")
+        .not("deleted_at", "is", null)
+        .gte("deleted_at", cutoffDate);
+
+      if (readError) throw readError;
       const { error } = await supabase
         .from("notes")
         .delete()
@@ -236,6 +250,8 @@ export function useEmptyTrash() {
         .gte("deleted_at", cutoffDate);
 
       if (error) throw error;
+      try { await deleteNoteImages((notesToDelete || []).flatMap((note) => getNoteImagePaths(note.content))); }
+      catch (cleanupError) { console.error("Trash emptied, but some photos could not be removed from storage.", cleanupError); }
       return true;
     },
     onMutate: async () => {

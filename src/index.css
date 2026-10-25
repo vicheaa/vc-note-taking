@@ -82,14 +82,14 @@ body {
   flex-shrink: 0;
   place-items: center;
   border-radius: 8px;
-  background: var(--notes-ink);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
-.notes-logo span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--notes-blue);
+.notes-logo img {
+  display: block;
+  width: 19px;
+  height: 19px;
+  filter: none;
 }
 
 .sidebar-navigation {
@@ -289,6 +289,13 @@ body {
 .editor-prose pre code { padding: 0; background: transparent; }
 .editor-prose blockquote { margin: 16px 0; padding-left: 20px; border-left: 3px solid #dce0e9; color: var(--notes-muted); }
 .editor-due-date { margin: -8px 0 22px; }
+.note-image { margin: 16px 0; border-radius: 12px; }
+.note-image img { display: block; max-width: 100%; height: auto; max-height: 720px; border-radius: 12px; object-fit: contain; }
+.note-image.is-selected { outline: 2px solid #354cff; outline-offset: 3px; }
+.note-image-status { padding: 24px 16px; border-radius: 12px; background: #f3f4f7; color: #667085; font-size: 14px; }
+.note-image-status button { text-decoration: underline; }
+.note-photo-feedback { margin: 0 0 16px; color: #667085; font-size: 13px; }
+.note-photo-feedback.is-error { color: #b42318; }
 .editor-formatbar { position: fixed; bottom: 28px; left: calc(50% + 192px); z-index: 10; display: flex; width: max-content; max-width: calc(100vw - 96px); height: 56px; align-items: center; gap: 7px; padding: 8px; transform: translateX(-50%); border: 1px solid #ffffff0a; border-radius: 20px; background: #101318; color: #c8cdd6; box-shadow: 0 16px 48px #10131826; }
 .editor-format-button { display: grid; width: 40px; height: 40px; flex-shrink: 0; place-items: center; border-radius: 12px; transition: background 150ms, color 150ms; }
 .editor-format-button:hover, .editor-format-button.is-active { background: #222831; color: #fff; }
@@ -351,13 +358,14 @@ body {
 
 @media (max-width: 480px) {
   .note-editor-workspace { left: 56px; }
-  .editor-formatbar { left: calc(50% + 28px); }
+  .editor-formatbar { left: calc(50% + 28px); gap: 1px; }
+  .editor-format-button { width: 26px; }
 }
 
 @media (max-width: 370px) {
   .notes-filter { padding-right: 9px; padding-left: 9px; }
   .editor-formatbar { gap: 1px; max-width: calc(100vw - 72px); padding: 5px; }
-  .editor-format-button { width: 26px; }
+  .editor-format-button { width: 22px; }
   .editor-format-divider { margin: 0 1px; }
   .editor-breadcrumb { gap: 6px; }
 }

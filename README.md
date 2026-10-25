@@ -7,6 +7,7 @@ A minimalist note-taking application inspired by Google Keep, built with React, 
 - ✨ Clean, minimalist UI inspired by Google Keep
 - 🔐 Secure authentication with Supabase
 - 📝 Create, edit, and delete notes
+- 🖼️ Paste, upload, or drop photos into notes using private Supabase Storage
 - 📌 Pin important notes
 - 🎨 **NEW**: Choose from 10 background colors for notes
 - 🔍 **NEW**: Real-time search across title and content
@@ -95,6 +96,40 @@ USING (auth.uid() = user_id);
    \`\`\`
 
 5. Open your browser and navigate to `http://localhost:5173`
+
+### Photo storage setup
+
+1. Open your Supabase project's **SQL Editor** and run
+   [`supabase/migrations/20261025000000_note_images.sql`](supabase/migrations/20261025000000_note_images.sql).
+   This creates the private `note-images` bucket, a 5 MB per-file limit, and policies
+   that let signed-in users upload and view only files inside their own user folder.
+   If you already use Supabase CLI migrations, apply it through your normal migration workflow.
+2. The app uses your existing `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+   Optionally set `VITE_SUPABASE_IMAGES_BUCKET=note-images`. To use another bucket,
+   replace `note-images` in the SQL and set this variable to the same name.
+3. Restart the development server after changing environment variables.
+
+In a text note, click **Upload photo**, paste a copied photo or screenshot with
+**Ctrl/⌘ + V**, or drag photo files into the writing area. JPEG, PNG, WebP, and GIF
+files are supported, up to 5 MB each. Multiple files can be selected at once.
+JPEG and PNG photos (including pasted screenshots) are converted to WebP in your
+browser before uploading, at 85% quality with their original dimensions and
+transparency. Existing WebP files are uploaded unchanged; GIF files stay in their
+original format to preserve animations. If WebP encoding is unavailable, the app
+shows an error before uploading. Very small images may grow when converted.
+Wait for uploads to finish before leaving the note; photos save automatically,
+including notes with no text or title. Select a photo and press Backspace/Delete
+to remove it from the note.
+
+Photos use Supabase's S3-compatible Storage through its browser SDK and the user's
+authenticated session. No S3 access keys or service-role keys belong in the frontend.
+Notes store object paths; signed image URLs are generated on opening the note and
+refreshed while it stays open. Files remain private under the bucket's access policies.
+See the [Supabase private bucket documentation](https://supabase.com/docs/guides/storage/buckets/fundamentals).
+
+Removing a photo deletes its stored object after the updated note is saved. Moving
+a note to Trash keeps its photos so they remain available if the note is restored;
+permanently deleting a note or emptying Trash also removes its stored photos.
 
 ## Project Structure
 

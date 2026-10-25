@@ -25,7 +25,7 @@ export function Header({ isSearching, onSearchToggle, onShowNotes, onNavigate, b
   return (
     <aside className="notes-sidebar" aria-label="Main navigation">
       <Link to="/dashboard" className="notes-logo" aria-label="VC Notes home" onClick={(event) => { if (onNavigate) { event.preventDefault(); onNavigate("/dashboard"); } else onShowNotes(); }}>
-        <span />
+        <img src="/favicon.svg?v=2" alt="" aria-hidden="true" draggable={false} />
       </Link>
       <nav className="sidebar-navigation" aria-label="Notes">
         <button className={`sidebar-button ${!isSearching ? "is-active" : ""}`} onClick={onShowNotes} title="All notes" aria-label="All notes" aria-current={!isSearching ? "page" : undefined}>

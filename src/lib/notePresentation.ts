@@ -11,6 +11,14 @@ export function notePlainText(content: string | null): string {
   return (document.body.textContent || "").replace(/\s+/g, " ").trim();
 }
 
+export function noteHasContent(content: string | null): boolean {
+  return !!notePlainText(content) || !!(content && new DOMParser().parseFromString(content, "text/html").querySelector("img"));
+}
+
+export function notePreview(content: string | null): string {
+  return notePlainText(content) || (noteHasContent(content) ? "Photo" : "");
+}
+
 export function getNoteKind(note: Note, tasks: Task[] = []): NoteKind {
   if (tasks.length || localStorage.getItem(`note-mode-${note.id}`) === "tasks") return "checklist";
   const content = note.content || "";
